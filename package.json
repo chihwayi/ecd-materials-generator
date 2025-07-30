@@ -1,0 +1,16 @@
+{
+  "name": "ecd-materials-generator",
+  "version": "1.0.0",
+  "description": "ECD Learning Materials Generator - Full Stack Application",
+  "scripts": {
+    "dev": "./start-dev.sh",
+    "start": "./start-dev.sh",
+    "stop": "pkill -f 'docker-compose|nodemon|react-scripts'",
+    "setup": "npm install && cd server && npm install && cd ../client && npm install --legacy-peer-deps",
+    "build": "cd client && npm run build",
+    "test": "cd server && npm test && cd ../client && npm test"
+  },
+  "keywords": ["ecd", "education", "zimbabwe", "materials", "generator"],
+  "author": "ECD Team",
+  "license": "MIT"
+}

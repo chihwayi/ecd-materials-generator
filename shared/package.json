@@ -1,0 +1,14 @@
+{
+  "name": "ecd-shared",
+  "version": "1.0.0",
+  "description": "Shared utilities and types for ECD Materials Generator",
+  "main": "index.js",
+  "dependencies": {
+    "joi": "^17.11.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/lodash": "^4.14.202"
+  }
+}

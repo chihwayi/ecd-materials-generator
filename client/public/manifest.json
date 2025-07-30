@@ -1,0 +1,8 @@
+{
+  "short_name": "ECD Materials",
+  "name": "ECD Learning Materials Generator",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff"
+}
