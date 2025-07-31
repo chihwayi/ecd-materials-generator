@@ -10,7 +10,7 @@
 
 ### System Administrator
 - **Email**: `admin@ecd.com`
-- **Password**: `password`
+- **Password**: `password`  marry1234
 - **Role**: System Admin
 - **Access**: Full system administration
 

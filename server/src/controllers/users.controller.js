@@ -4,6 +4,9 @@ const { Op } = require('sequelize');
 // Get all users with pagination and filtering
 const getAllUsers = async (req, res) => {
   try {
+    if (req.user.role !== 'system_admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const {
       page = 1,
       limit = 10,
@@ -37,7 +40,8 @@ const getAllUsers = async (req, res) => {
       where,
       include: [{
         model: School,
-        attributes: ['id', 'name']
+        attributes: ['id', 'name'],
+        required: false
       }],
       attributes: { exclude: ['password'] },
       limit: parseInt(limit),
@@ -87,6 +91,9 @@ const getUserById = async (req, res) => {
 // Create new user
 const createUser = async (req, res) => {
   try {
+    if (req.user.role !== 'system_admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const {
       email,
       password,
@@ -118,10 +125,10 @@ const createUser = async (req, res) => {
       password,
       firstName,
       lastName,
-      role: role || 'teacher',
+      role: role || 'school_admin',
       phoneNumber,
       language: language || 'en',
-      schoolId,
+      schoolId: schoolId || null,
       subscriptionPlan: subscriptionPlan || 'free'
     });
 

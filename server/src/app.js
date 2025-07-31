@@ -94,6 +94,7 @@ app.use('/api/v1/students', require('./routes/students'));
 app.use('/api/v1/parent', require('./routes/parent'));
 app.use('/api/v1/assignments', require('./routes/assignments'));
 app.use('/api/v1/school', require('./routes/school-settings'));
+app.use('/api/v1/analytics', require('./routes/analytics'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

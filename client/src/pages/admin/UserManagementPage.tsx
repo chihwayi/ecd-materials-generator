@@ -171,7 +171,7 @@ const UserManagementPage: React.FC = () => {
       password: '',
       firstName: '',
       lastName: '',
-      role: 'teacher',
+      role: 'school_admin',
       phoneNumber: '',
       language: 'en',
       schoolId: '',
@@ -256,7 +256,7 @@ const UserManagementPage: React.FC = () => {
     {
       key: 'school',
       title: 'School',
-      render: (_, user) => user.school?.name || 'No School'
+      render: (_, user) => user.School?.name || 'No School'
     },
     {
       key: 'subscriptionPlan',
@@ -370,10 +370,9 @@ const UserManagementPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="teacher">Teacher</option>
             <option value="school_admin">School Admin</option>
-            <option value="parent">Parent</option>
             <option value="system_admin">System Admin</option>
+            <option value="delegated_admin">Delegated Admin</option>
           </select>
         </div>
         <div>
@@ -394,8 +393,8 @@ const UserManagementPage: React.FC = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700">School</label>
           <select
-            value={formData.schoolId}
-            onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
+            value={formData.schoolId || ''}
+            onChange={(e) => setFormData({ ...formData, schoolId: e.target.value || null })}
             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">No School</option>

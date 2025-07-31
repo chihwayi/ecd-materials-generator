@@ -38,7 +38,8 @@ const User = sequelize.define('User', {
   },
   schoolId: {
     type: DataTypes.UUID,
-    references: { model: 'School', key: 'id' }
+    references: { model: 'School', key: 'id' },
+    field: 'school_id'
   },
   subscriptionPlan: {
     type: DataTypes.ENUM('free', 'teacher', 'school', 'premium'),
