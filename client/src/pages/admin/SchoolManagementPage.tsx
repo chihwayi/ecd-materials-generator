@@ -1,9 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import DataTable, { Column } from '../../components/admin/DataTable';
-import Modal from '../../components/admin/Modal';
-import { schoolService } from '../../services/admin.service';
-import { School, CreateSchoolRequest, UpdateSchoolRequest, SchoolFilters } from '../../types/user.types';
+import DataTable, { Column } from '../../components/admin/DataTable.tsx';
+import Modal from '../../components/admin/Modal.tsx';
+import { adminService, adminUtils } from '../../services/admin.service';
+
+interface School {
+  id: string;
+  name: string;
+  address: string;
+  contactEmail: string;
+  contactPhone: string;
+  subscriptionPlan: 'free' | 'school' | 'premium';
+  subscriptionStatus: 'active' | 'inactive' | 'suspended';
+  maxTeachers: number;
+  maxStudents: number;
+  isActive: boolean;
+  createdAt: string;
+  _count?: {
+    users: number;
+  };
+}
+
+interface CreateSchoolRequest {
+  name: string;
+  address: string;
+  contactEmail: string;
+  contactPhone: string;
+  subscriptionPlan: 'free' | 'school' | 'premium';
+  maxTeachers: number;
+  maxStudents: number;
+}
+
+interface UpdateSchoolRequest extends Partial<CreateSchoolRequest> {}
+
+interface SchoolFilters {
+  search?: string;
+  subscriptionPlan?: string;
+  subscriptionStatus?: string;
+  isActive?: boolean;
+}
 
 const SchoolManagementPage: React.FC = () => {
   const [schools, setSchools] = useState<School[]>([]);
@@ -17,6 +52,8 @@ const SchoolManagementPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
   const [formData, setFormData] = useState<CreateSchoolRequest>({
     name: '',
     address: '',
@@ -31,14 +68,14 @@ const SchoolManagementPage: React.FC = () => {
     fetchSchools();
   }, [pagination.current, pagination.pageSize, filters]);
 
+  useEffect(() => {
+    setShowBulkActions(selectedSchools.length > 0);
+  }, [selectedSchools]);
+
   const fetchSchools = async () => {
     try {
       setLoading(true);
-      const response = await schoolService.getSchools({
-        page: pagination.current,
-        limit: pagination.pageSize,
-        filters
-      });
+      const response = await adminService.getAllSchools(pagination.current, pagination.pageSize);
       setSchools(response.data);
       setPagination(prev => ({
         ...prev,
@@ -54,7 +91,7 @@ const SchoolManagementPage: React.FC = () => {
 
   const handleCreateSchool = async () => {
     try {
-      await schoolService.createSchool(formData);
+      await adminService.createSchool(formData);
       toast.success('School created successfully');
       setIsCreateModalOpen(false);
       resetForm();
@@ -69,7 +106,7 @@ const SchoolManagementPage: React.FC = () => {
     
     try {
       const updateData: UpdateSchoolRequest = { ...formData };
-      await schoolService.updateSchool(selectedSchool.id, updateData);
+      await adminService.updateSchool(selectedSchool.id, updateData);
       toast.success('School updated successfully');
       setIsEditModalOpen(false);
       resetForm();
@@ -85,11 +122,66 @@ const SchoolManagementPage: React.FC = () => {
     }
 
     try {
-      await schoolService.deleteSchool(school.id);
+      await adminService.deleteSchool(school.id);
       toast.success('School deleted successfully');
       fetchSchools();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete school');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedSchools.length} schools?`)) {
+      return;
+    }
+
+    try {
+      await Promise.all(selectedSchools.map(id => adminService.deleteSchool(id)));
+      toast.success(`Successfully deleted ${selectedSchools.length} schools`);
+      setSelectedSchools([]);
+      setShowBulkActions(false);
+      fetchSchools();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to delete schools');
+    }
+  };
+
+  const handleBulkStatusUpdate = async (isActive: boolean) => {
+    try {
+      await Promise.all(selectedSchools.map(id => adminService.updateSchool(id, { isActive })));
+      toast.success(`Successfully ${isActive ? 'activated' : 'deactivated'} ${selectedSchools.length} schools`);
+      setSelectedSchools([]);
+      setShowBulkActions(false);
+      fetchSchools();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update schools');
+    }
+  };
+
+  const handleExportSchools = async () => {
+    try {
+      const blob = await adminService.exportSchools('csv');
+      const filename = `schools_export_${new Date().toISOString().split('T')[0]}.csv`;
+      adminUtils.downloadFile(blob, filename);
+      toast.success('Schools exported successfully');
+    } catch (error: any) {
+      toast.error('Failed to export schools');
+    }
+  };
+
+  const handleSelectSchool = (schoolId: string, selected: boolean) => {
+    if (selected) {
+      setSelectedSchools(prev => [...prev, schoolId]);
+    } else {
+      setSelectedSchools(prev => prev.filter(id => id !== schoolId));
+    }
+  };
+
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      setSelectedSchools(schools.map(school => school.id));
+    } else {
+      setSelectedSchools([]);
     }
   };
 
@@ -122,23 +214,42 @@ const SchoolManagementPage: React.FC = () => {
 
   const columns: Column<School>[] = [
     {
+      key: 'select',
+      title: (
+        <input
+          type="checkbox"
+          checked={selectedSchools.length === schools.length && schools.length > 0}
+          onChange={(e) => handleSelectAll(e.target.checked)}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+      ),
+      render: (_, school) => (
+        <input
+          type="checkbox"
+          checked={selectedSchools.includes(school.id)}
+          onChange={(e) => handleSelectSchool(school.id, e.target.checked)}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+      )
+    },
+    {
       key: 'name',
-      title: 'School Name',
+      title: 'School',
       sortable: true,
       render: (_, school) => (
         <div>
           <div className="text-sm font-medium text-gray-900">{school.name}</div>
-          <div className="text-sm text-gray-500">{school.address || 'No address'}</div>
+          <div className="text-sm text-gray-500">{school.contactEmail}</div>
+          <div className="text-sm text-gray-400">{school.address}</div>
         </div>
       )
     },
     {
-      key: 'contactEmail',
-      title: 'Contact',
+      key: 'users',
+      title: 'Users',
       render: (_, school) => (
-        <div>
-          <div className="text-sm text-gray-900">{school.contactEmail || 'No email'}</div>
-          <div className="text-sm text-gray-500">{school.contactPhone || 'No phone'}</div>
+        <div className="text-sm text-gray-900">
+          {school._count?.users || 0} users
         </div>
       )
     },
@@ -149,7 +260,7 @@ const SchoolManagementPage: React.FC = () => {
       render: (plan) => (
         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
           plan === 'premium' ? 'bg-purple-100 text-purple-800' :
-          plan === 'basic' ? 'bg-blue-100 text-blue-800' :
+          plan === 'school' ? 'bg-blue-100 text-blue-800' :
           'bg-gray-100 text-gray-800'
         }`}>
           {plan.toUpperCase()}
@@ -157,41 +268,25 @@ const SchoolManagementPage: React.FC = () => {
       )
     },
     {
-      key: '_count',
-      title: 'Users',
-      render: (_, school) => (
-        <div className="text-sm text-gray-900">
-          {school._count?.users || 0} users
-        </div>
-      )
-    },
-    {
-      key: 'maxTeachers',
+      key: 'limits',
       title: 'Limits',
       render: (_, school) => (
-        <div className="text-sm text-gray-900">
+        <div className="text-xs text-gray-600">
           <div>Teachers: {school.maxTeachers}</div>
           <div>Students: {school.maxStudents}</div>
         </div>
       )
     },
     {
-      key: 'subscriptionStatus',
+      key: 'isActive',
       title: 'Status',
       sortable: true,
-      render: (status, school) => (
-        <div>
-          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-            status === 'active' ? 'bg-green-100 text-green-800' :
-            status === 'cancelled' ? 'bg-red-100 text-red-800' :
-            'bg-yellow-100 text-yellow-800'
-          }`}>
-            {status.toUpperCase()}
-          </span>
-          <div className="text-xs text-gray-500 mt-1">
-            {school.isActive ? 'Active' : 'Inactive'}
-          </div>
-        </div>
+      render: (isActive) => (
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+          isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          {isActive ? 'Active' : 'Inactive'}
+        </span>
       )
     },
     {
@@ -274,7 +369,7 @@ const SchoolManagementPage: React.FC = () => {
           className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="free">Free</option>
-          <option value="basic">Basic</option>
+          <option value="school">School</option>
           <option value="premium">Premium</option>
         </select>
       </div>
@@ -312,13 +407,61 @@ const SchoolManagementPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">School Management</h1>
           <p className="text-gray-600">Manage all schools in the system</p>
         </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          Add School
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleExportSchools}
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            Export Schools
+          </button>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Add School
+          </button>
+        </div>
       </div>
+
+      {/* Bulk Actions */}
+      {showBulkActions && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-blue-900">
+              {selectedSchools.length} school{selectedSchools.length !== 1 ? 's' : ''} selected
+            </span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handleBulkStatusUpdate(true)}
+                className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-md hover:bg-green-200"
+              >
+                Activate
+              </button>
+              <button
+                onClick={() => handleBulkStatusUpdate(false)}
+                className="text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md hover:bg-yellow-200"
+              >
+                Deactivate
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-md hover:bg-red-200"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedSchools([]);
+                  setShowBulkActions(false);
+                }}
+                className="text-sm bg-gray-100 text-gray-800 px-3 py-1 rounded-md hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -342,7 +485,7 @@ const SchoolManagementPage: React.FC = () => {
             >
               <option value="">All Plans</option>
               <option value="free">Free</option>
-              <option value="basic">Basic</option>
+              <option value="school">School</option>
               <option value="premium">Premium</option>
             </select>
           </div>
@@ -362,17 +505,19 @@ const SchoolManagementPage: React.FC = () => {
       </div>
 
       {/* Schools Table */}
-      <DataTable
-        data={schools}
-        columns={columns}
-        loading={loading}
-        pagination={{
-          current: pagination.current,
-          total: pagination.total,
-          pageSize: pagination.pageSize,
-          onChange: (page, pageSize) => setPagination({ ...pagination, current: page, pageSize })
-        }}
-      />
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <DataTable
+          data={schools}
+          columns={columns}
+          loading={loading}
+          pagination={{
+            current: pagination.current,
+            total: pagination.total,
+            pageSize: pagination.pageSize,
+            onChange: (page, pageSize) => setPagination({ ...pagination, current: page, pageSize })
+          }}
+        />
+      </div>
 
       {/* Create School Modal */}
       <Modal

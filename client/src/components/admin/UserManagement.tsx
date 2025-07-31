@@ -1,12 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { adminService } from '../../services/admin.service';
+import CreateUserModal from './CreateUserModal';
 
-const UserManagement = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [filters, setFilters] = useState({ role: '', status: '' });
-  const [pagination, setPagination] = useState({ page: 1, total: 0, pages: 0 });
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface Pagination {
+  page: number;
+  total: number;
+  pages: number;
+  totalPages: number;
+}
+
+const UserManagement: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [filters, setFilters] = useState<{ role: string; status: string }>({ role: '', status: '' });
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, total: 0, pages: 0, totalPages: 0 });
 
   useEffect(() => {
     fetchUsers();
@@ -16,25 +35,32 @@ const UserManagement = () => {
     try {
       setLoading(true);
       const data = await adminService.getAllUsers(pagination.page, 20, filters);
-      setUsers(data.users);
-      setPagination(data.pagination);
-    } catch (error) {
+      setUsers(data.data || []);
+      setPagination({
+        page: data.pagination?.page || 1,
+        total: data.pagination?.total || 0,
+        pages: data.pagination?.totalPages || 0,
+        totalPages: data.pagination?.totalPages || 0
+      });
+    } catch (error: any) {
       console.error('Failed to fetch users:', error);
+      toast.error('Failed to fetch users');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleStatus = async (userId) => {
+  const handleToggleStatus = async (userId: string) => {
     try {
       await adminService.toggleUserStatus(userId);
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to toggle user status:', error);
+      toast.error('Failed to toggle user status');
     }
   };
 
-  const getRoleBadgeColor = (role) => {
+  const getRoleBadgeColor = (role: string) => {
     const colors = {
       system_admin: 'bg-red-100 text-red-800',
       delegated_admin: 'bg-orange-100 text-orange-800',
@@ -176,6 +202,13 @@ const UserManagement = () => {
           </button>
         </div>
       )}
+
+      {/* Create User Modal */}
+      <CreateUserModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onUserCreated={fetchUsers}
+      />
     </div>
   );
 };

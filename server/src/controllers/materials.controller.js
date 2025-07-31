@@ -1,61 +1,78 @@
-const { Material, Template, User } = require('../models');
+const { Material, User } = require('../models');
 const { logger } = require('../utils/logger');
 
 const getMaterials = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, type, subject, language, status } = req.query;
     const offset = (page - 1) * limit;
+    
+    const where = { creatorId: req.user.id };
+    if (type) where.type = type;
+    if (subject) where.subject = subject;
+    if (language) where.language = language;
+    if (status) where.status = status;
 
     const materials = await Material.findAndCountAll({
-      where: { creatorId: req.user.id },
-      include: [
-        { model: Template, attributes: ['name', 'category'] },
-        { model: User, as: 'creator', attributes: ['firstName', 'lastName'] }
-      ],
+      where,
+      include: [{ model: User, as: 'creator', attributes: ['firstName', 'lastName'] }],
       limit: parseInt(limit),
       offset,
       order: [['updatedAt', 'DESC']]
     });
 
     res.json({
-      materials: materials.rows,
+      data: materials.rows,
       pagination: {
         total: materials.count,
         page: parseInt(page),
-        pages: Math.ceil(materials.count / limit)
+        limit: parseInt(limit),
+        totalPages: Math.ceil(materials.count / limit)
       }
     });
   } catch (error) {
     logger.error('Get materials error:', error);
-    res.status(500).json({ error: 'Failed to fetch materials' });
+    res.status(500).json({ message: 'Failed to fetch materials' });
   }
 };
 
 const createMaterial = async (req, res) => {
   try {
-    const { title, description, templateId, content, tags } = req.body;
+    const { title, description, type, subject, language, ageGroup, status, elements } = req.body;
 
-    const template = await Template.findByPk(templateId);
-    if (!template) {
-      return res.status(404).json({ error: 'Template not found' });
-    }
+    console.log('Creating material with data:', {
+      title,
+      description,
+      type: type || 'worksheet',
+      subject: subject || 'math',
+      language: language || 'en',
+      ageGroup: ageGroup || '3-5',
+      status: status || 'draft',
+      elements: elements || [],
+      creatorId: req.user.id
+    });
 
     const material = await Material.create({
       title,
       description,
-      templateId,
+      type: type || 'worksheet',
+      subject: subject || 'math',
+      language: language || 'en',
+      ageGroup: ageGroup || '3-5',
+      status: status || 'draft',
+      elements: elements || [],
       creatorId: req.user.id,
-      content,
-      tags: tags || []
+      publishedAt: status === 'published' ? new Date() : null
     });
 
-    res.status(201).json({
-      message: 'Material created successfully',
-      material
+    const materialWithCreator = await Material.findByPk(material.id, {
+      include: [{ model: User, as: 'creator', attributes: ['firstName', 'lastName'] }]
     });
+
+    res.status(201).json(materialWithCreator);
   } catch (error) {
+    console.error('Create material error:', error);
     logger.error('Create material error:', error);
-    res.status(500).json({ error: 'Failed to create material' });
+    res.status(500).json({ message: 'Failed to create material', error: error.message });
   }
 };
 
@@ -66,29 +83,25 @@ const getMaterial = async (req, res) => {
         id: req.params.id,
         creatorId: req.user.id
       },
-      include: [
-        { model: Template, attributes: ['name', 'category'] },
-        { model: User, as: 'creator', attributes: ['firstName', 'lastName'] }
-      ]
+      include: [{ model: User, as: 'creator', attributes: ['firstName', 'lastName'] }]
     });
 
     if (!material) {
-      return res.status(404).json({ error: 'Material not found' });
+      return res.status(404).json({ message: 'Material not found' });
     }
 
     await material.increment('views');
-    await material.update({ lastAccessed: new Date() });
 
-    res.json({ material });
+    res.json(material);
   } catch (error) {
     logger.error('Get material error:', error);
-    res.status(500).json({ error: 'Failed to fetch material' });
+    res.status(500).json({ message: 'Failed to fetch material' });
   }
 };
 
 const updateMaterial = async (req, res) => {
   try {
-    const { title, description, content, tags } = req.body;
+    const { title, description, type, subject, language, ageGroup, status, elements } = req.body;
 
     const material = await Material.findOne({
       where: { 
@@ -98,24 +111,60 @@ const updateMaterial = async (req, res) => {
     });
 
     if (!material) {
-      return res.status(404).json({ error: 'Material not found' });
+      return res.status(404).json({ message: 'Material not found' });
     }
 
-    await material.update({
-      title: title || material.title,
-      description: description || material.description,
-      content: content || material.content,
-      tags: tags || material.tags
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (type !== undefined) updateData.type = type;
+    if (subject !== undefined) updateData.subject = subject;
+    if (language !== undefined) updateData.language = language;
+    if (ageGroup !== undefined) updateData.ageGroup = ageGroup;
+    if (status !== undefined) {
+      updateData.status = status;
+      if (status === 'published' && !material.publishedAt) {
+        updateData.publishedAt = new Date();
+      }
+    }
+    if (elements !== undefined) updateData.elements = elements;
+
+    await material.update(updateData);
+
+    const updatedMaterial = await Material.findByPk(material.id, {
+      include: [{ model: User, as: 'creator', attributes: ['firstName', 'lastName'] }]
     });
 
-    res.json({
-      message: 'Material updated successfully',
-      material
-    });
+    res.json(updatedMaterial);
   } catch (error) {
     logger.error('Update material error:', error);
-    res.status(500).json({ error: 'Failed to update material' });
+    res.status(500).json({ message: 'Failed to update material' });
   }
 };
 
-module.exports = { getMaterials, createMaterial, getMaterial, updateMaterial };
+const publishMaterial = async (req, res) => {
+  try {
+    const material = await Material.findOne({
+      where: { 
+        id: req.params.id,
+        creatorId: req.user.id
+      }
+    });
+
+    if (!material) {
+      return res.status(404).json({ message: 'Material not found' });
+    }
+
+    await material.update({
+      status: 'published',
+      publishedAt: new Date()
+    });
+
+    res.json({ message: 'Material published successfully', material });
+  } catch (error) {
+    logger.error('Publish material error:', error);
+    res.status(500).json({ message: 'Failed to publish material' });
+  }
+};
+
+module.exports = { getMaterials, createMaterial, getMaterial, updateMaterial, publishMaterial };

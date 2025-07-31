@@ -13,9 +13,7 @@ School.hasMany(User, { foreignKey: 'schoolId' });
 Template.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
 User.hasMany(Template, { foreignKey: 'creatorId', as: 'templates' });
 
-Material.belongsTo(Template, { foreignKey: 'templateId' });
 Material.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
-Template.hasMany(Material, { foreignKey: 'templateId' });
 User.hasMany(Material, { foreignKey: 'creatorId', as: 'materials' });
 
 Student.belongsTo(School, { foreignKey: 'schoolId' });

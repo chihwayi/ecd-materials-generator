@@ -13,6 +13,9 @@ const materialRoutes = require('./routes/materials.routes');
 const templateRoutes = require('./routes/templates.routes');
 const assignmentRoutes = require('./routes/assignments.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
+const adminRoutes = require('./routes/admin.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
+const studentsRoutes = require('./routes/students.routes');
 
 // Import middleware
 const { authMiddleware } = require('./middleware/auth.middleware');
@@ -80,6 +83,9 @@ app.use('/api/v1/materials', materialRoutes);
 app.use('/api/v1/templates', templateRoutes);
 app.use('/api/v1/assignments', assignmentRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/students', studentsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

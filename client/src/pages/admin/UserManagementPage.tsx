@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import DataTable, { Column } from '../../components/admin/DataTable';
-import Modal from '../../components/admin/Modal';
-import { userService, schoolService } from '../../services/admin.service';
+import DataTable, { Column } from '../../components/admin/DataTable.tsx';
+import Modal from '../../components/admin/Modal.tsx';
+import { adminService, adminUtils } from '../../services/admin.service';
 import { User, School, CreateUserRequest, UpdateUserRequest, UserFilters } from '../../types/user.types';
 
 const UserManagementPage: React.FC = () => {
@@ -18,6 +18,8 @@ const UserManagementPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
   const [formData, setFormData] = useState<CreateUserRequest>({
     email: '',
     password: '',
@@ -38,11 +40,7 @@ const UserManagementPage: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await userService.getUsers({
-        page: pagination.current,
-        limit: pagination.pageSize,
-        filters
-      });
+      const response = await adminService.getAllUsers(pagination.current, pagination.pageSize, filters);
       setUsers(response.data);
       setPagination(prev => ({
         ...prev,
@@ -58,7 +56,7 @@ const UserManagementPage: React.FC = () => {
 
   const fetchSchools = async () => {
     try {
-      const response = await schoolService.getSchools({ limit: 100 });
+      const response = await adminService.getAllSchools(1, 100);
       setSchools(response.data);
     } catch (error) {
       console.error('Fetch schools error:', error);
@@ -67,7 +65,7 @@ const UserManagementPage: React.FC = () => {
 
   const handleCreateUser = async () => {
     try {
-      await userService.createUser(formData);
+      await adminService.createUser(formData);
       toast.success('User created successfully');
       setIsCreateModalOpen(false);
       resetForm();
@@ -84,7 +82,7 @@ const UserManagementPage: React.FC = () => {
       const updateData: UpdateUserRequest = { ...formData };
       delete (updateData as any).password; // Don't update password unless specifically provided
       
-      await userService.updateUser(selectedUser.id, updateData);
+      await adminService.updateUser(selectedUser.id, updateData);
       toast.success('User updated successfully');
       setIsEditModalOpen(false);
       resetForm();
@@ -100,13 +98,72 @@ const UserManagementPage: React.FC = () => {
     }
 
     try {
-      await userService.deleteUser(user.id);
+      await adminService.deleteUser(user.id);
       toast.success('User deleted successfully');
       fetchUsers();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete user');
     }
   };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedUsers.length} users?`)) {
+      return;
+    }
+
+    try {
+      await adminService.bulkDeleteUsers(selectedUsers);
+      toast.success(`Successfully deleted ${selectedUsers.length} users`);
+      setSelectedUsers([]);
+      setShowBulkActions(false);
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to delete users');
+    }
+  };
+
+  const handleBulkStatusUpdate = async (isActive: boolean) => {
+    try {
+      await adminService.bulkUpdateUsers(selectedUsers, { isActive });
+      toast.success(`Successfully ${isActive ? 'activated' : 'deactivated'} ${selectedUsers.length} users`);
+      setSelectedUsers([]);
+      setShowBulkActions(false);
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update users');
+    }
+  };
+
+  const handleExportUsers = async () => {
+    try {
+      const blob = await adminService.exportUsers('csv');
+      const filename = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+      adminUtils.downloadFile(blob, filename);
+      toast.success('Users exported successfully');
+    } catch (error: any) {
+      toast.error('Failed to export users');
+    }
+  };
+
+  const handleSelectUser = (userId: string, selected: boolean) => {
+    if (selected) {
+      setSelectedUsers(prev => [...prev, userId]);
+    } else {
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
+    }
+  };
+
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      setSelectedUsers(users.map(user => user.id));
+    } else {
+      setSelectedUsers([]);
+    }
+  };
+
+  useEffect(() => {
+    setShowBulkActions(selectedUsers.length > 0);
+  }, [selectedUsers]);
 
   const resetForm = () => {
     setFormData({
@@ -140,6 +197,25 @@ const UserManagementPage: React.FC = () => {
   };
 
   const columns: Column<User>[] = [
+    {
+      key: 'select',
+      title: (
+        <input
+          type="checkbox"
+          checked={selectedUsers.length === users.length && users.length > 0}
+          onChange={(e) => handleSelectAll(e.target.checked)}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+      ),
+      render: (_, user) => (
+        <input
+          type="checkbox"
+          checked={selectedUsers.includes(user.id)}
+          onChange={(e) => handleSelectUser(user.id, e.target.checked)}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+      )
+    },
     {
       key: 'firstName',
       title: 'Name',
@@ -363,13 +439,61 @@ const UserManagementPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-600">Manage all system users</p>
         </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          Add User
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleExportUsers}
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            Export Users
+          </button>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Add User
+          </button>
+        </div>
       </div>
+
+      {/* Bulk Actions */}
+      {showBulkActions && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-blue-900">
+              {selectedUsers.length} user{selectedUsers.length !== 1 ? 's' : ''} selected
+            </span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handleBulkStatusUpdate(true)}
+                className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-md hover:bg-green-200"
+              >
+                Activate
+              </button>
+              <button
+                onClick={() => handleBulkStatusUpdate(false)}
+                className="text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md hover:bg-yellow-200"
+              >
+                Deactivate
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-md hover:bg-red-200"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedUsers([]);
+                  setShowBulkActions(false);
+                }}
+                className="text-sm bg-gray-100 text-gray-800 px-3 py-1 rounded-md hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -427,17 +551,19 @@ const UserManagementPage: React.FC = () => {
       </div>
 
       {/* Users Table */}
-      <DataTable
-        data={users}
-        columns={columns}
-        loading={loading}
-        pagination={{
-          current: pagination.current,
-          total: pagination.total,
-          pageSize: pagination.pageSize,
-          onChange: (page, pageSize) => setPagination({ ...pagination, current: page, pageSize })
-        }}
-      />
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <DataTable
+          data={users}
+          columns={columns}
+          loading={loading}
+          pagination={{
+            current: pagination.current,
+            total: pagination.total,
+            pageSize: pagination.pageSize,
+            onChange: (page, pageSize) => setPagination({ ...pagination, current: page, pageSize })
+          }}
+        />
+      </div>
 
       {/* Create User Modal */}
       <Modal

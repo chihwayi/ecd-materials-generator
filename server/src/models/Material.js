@@ -12,38 +12,42 @@ const Material = sequelize.define('Material', {
     allowNull: false
   },
   description: DataTypes.TEXT,
-  templateId: {
-    type: DataTypes.UUID,
+  type: {
+    type: DataTypes.ENUM('worksheet', 'activity', 'assessment', 'story'),
     allowNull: false,
-    references: { model: 'Template', key: 'id' }
+    defaultValue: 'worksheet'
+  },
+  subject: {
+    type: DataTypes.ENUM('math', 'language', 'science', 'art', 'cultural'),
+    allowNull: false,
+    defaultValue: 'math'
+  },
+  language: {
+    type: DataTypes.ENUM('en', 'sn', 'nd'),
+    allowNull: false,
+    defaultValue: 'en'
+  },
+  ageGroup: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: '3-5'
+  },
+  status: {
+    type: DataTypes.ENUM('draft', 'published'),
+    allowNull: false,
+    defaultValue: 'draft'
+  },
+  elements: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: []
   },
   creatorId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: { model: 'User', key: 'id' }
   },
-  content: {
-    type: DataTypes.JSONB,
-    allowNull: false
-  },
-  pdfUrl: DataTypes.STRING,
-  interactiveUrl: DataTypes.STRING,
-  isPublic: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  sharedWith: {
-    type: DataTypes.ARRAY(DataTypes.UUID),
-    defaultValue: []
-  },
-  allowDownload: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true
-  },
-  allowCopy: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
+  publishedAt: DataTypes.DATE,
   views: {
     type: DataTypes.INTEGER,
     defaultValue: 0
@@ -51,16 +55,7 @@ const Material = sequelize.define('Material', {
   downloads: {
     type: DataTypes.INTEGER,
     defaultValue: 0
-  },
-  assignments: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
-  },
-  tags: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    defaultValue: []
-  },
-  lastAccessed: DataTypes.DATE
+  }
 });
 
 module.exports = Material;
