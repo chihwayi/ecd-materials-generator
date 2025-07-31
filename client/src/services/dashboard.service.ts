@@ -37,7 +37,7 @@ export interface TeacherClass {
 class DashboardService {
   async getTeacherStats(): Promise<DashboardStats> {
     try {
-      const response = await api.get('/dashboard/teacher/stats');
+      const response = await api.get('/teacher/dashboard/stats');
       return response.data;
     } catch (error) {
       console.warn('Dashboard API unavailable, using fallback data:', error.message);
@@ -106,7 +106,7 @@ class DashboardService {
 
   async getTeacherClasses(): Promise<TeacherClass[]> {
     try {
-      const response = await api.get('/dashboard/teacher/classes');
+      const response = await api.get('/teacher/classes');
       return response.data;
     } catch (error) {
       // Mock data for development

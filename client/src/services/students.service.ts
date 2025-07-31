@@ -36,8 +36,22 @@ export interface ProgressRecord {
 class StudentsService {
   async getStudents(): Promise<Student[]> {
     try {
-      const response = await api.get('/students');
-      return response.data;
+      const response = await api.get('/teacher/students');
+      return response.data.students.map(student => ({
+        id: student.id,
+        name: `${student.firstName} ${student.lastName}`,
+        parentName: student.parentName || 'N/A',
+        parentEmail: student.parentEmail || 'N/A',
+        age: student.age,
+        className: student.class?.name || 'N/A',
+        enrollmentDate: student.createdAt?.split('T')[0] || 'N/A',
+        progress: {
+          completedActivities: 0,
+          totalActivities: 10,
+          averageScore: 0
+        },
+        recentActivities: []
+      }));
     } catch (error) {
       console.warn('Students API unavailable, using fallback data:', error.message);
       // Fallback data when API is unavailable

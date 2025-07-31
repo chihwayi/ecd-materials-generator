@@ -23,10 +23,18 @@ const Student = sequelize.define('Student', {
     validate: { isEmail: true }
   },
   parentPhone: DataTypes.STRING,
+  parentId: {
+    type: DataTypes.UUID,
+    references: { model: 'User', key: 'id' }
+  },
   schoolId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: { model: 'School', key: 'id' }
+  },
+  classId: {
+    type: DataTypes.UUID,
+    references: { model: 'Class', key: 'id' }
   },
   teacherId: {
     type: DataTypes.UUID,

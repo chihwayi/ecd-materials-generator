@@ -86,6 +86,14 @@ app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/students', studentsRoutes);
+app.use('/api/v1/teacher', require('./routes/teacher'));
+app.use('/api/v1/school-admin', require('./routes/school-admin'));
+app.use('/api/v1/classes', require('./routes/classes'));
+app.use('/api/v1/password-recovery', require('./routes/password-recovery'));
+app.use('/api/v1/students', require('./routes/students'));
+app.use('/api/v1/parent', require('./routes/parent'));
+app.use('/api/v1/assignments', require('./routes/assignments'));
+app.use('/api/v1/school', require('./routes/school-settings'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

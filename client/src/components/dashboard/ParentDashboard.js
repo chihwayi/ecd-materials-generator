@@ -1,152 +1,121 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 
 const ParentDashboard = ({ user }) => {
+  const [children, setChildren] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchChildren();
+  }, []);
+
+  const fetchChildren = async () => {
+    try {
+      const response = await api.get('/parent/children');
+      setChildren(response.data.children);
+    } catch (error) {
+      console.error('Failed to fetch children:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
-      {/* Quick Actions */}
-      <div className="grid md:grid-cols-4 gap-6">
-        <Link
-          to="/child-progress"
-          className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
-        >
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-            <span className="text-2xl">📈</span>
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-2">Child's Progress</h3>
-          <p className="text-sm text-gray-600">View learning progress</p>
-        </Link>
-
-        <Link
-          to="/assignments"
-          className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
-        >
-          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-            <span className="text-2xl">📋</span>
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-2">Assignments</h3>
-          <p className="text-sm text-gray-600">View child's assignments</p>
-        </Link>
-
-        <Link
-          to="/materials"
-          className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
-        >
-          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-            <span className="text-2xl">📚</span>
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-2">Learning Materials</h3>
-          <p className="text-sm text-gray-600">Browse materials</p>
-        </Link>
-
-        <Link
-          to="/communication"
-          className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
-        >
-          <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-            <span className="text-2xl">💬</span>
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-2">Teacher Messages</h3>
-          <p className="text-sm text-gray-600">Communicate with teachers</p>
-        </Link>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Welcome, {user.firstName}!
+        </h2>
+        <p className="text-gray-600">
+          Monitor your child's learning progress and assignments.
+        </p>
       </div>
 
-      {/* Child Stats */}
-      <div className="grid md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Completed Assignments</p>
-              <p className="text-3xl font-bold text-gray-900">0</p>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">My Children</h2>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">✅</span>
+            <div className="p-6">
+              {children.length === 0 ? (
+                <div className="text-center py-8">
+                  <span className="text-4xl">👶</span>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No children found</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Contact the school if your child should be listed here.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {children.map((child) => (
+                    <div key={child.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {child.firstName} {child.lastName}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            Class: {child.class?.name} • Grade: {child.class?.grade}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Teacher: {child.teacher ? `${child.teacher.first_name} ${child.teacher.last_name}` : 'Not assigned'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm text-gray-500">Age: {child.age}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Learning Streak</p>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-              <p className="text-xs text-gray-500">days</p>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Assignments</h2>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">🔥</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Average Score</p>
-              <p className="text-3xl font-bold text-gray-900">0%</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">⭐</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Time Spent</p>
-              <p className="text-3xl font-bold text-gray-900">0</p>
-              <p className="text-xs text-gray-500">hours this week</p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">⏰</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Child Activity */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-          </div>
-          <div className="p-6">
-            <div className="text-center py-8">
-              <span className="text-4xl">📚</span>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No recent activity</h3>
-              <p className="mt-1 text-sm text-gray-500">Your child's learning activities will appear here.</p>
+            <div className="p-6">
+              {children.length > 0 ? (
+                <div className="space-y-4">
+                  {children.map((child) => (
+                    <div key={child.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-medium text-gray-900">
+                          {child.firstName} {child.lastName}'s Assignments
+                        </h3>
+                        <a 
+                          href={`/student-assignments/${child.id}`}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          View All
+                        </a>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Click "View All" to see assignments and submit homework
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <span className="text-4xl">📝</span>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No assignments yet</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Assignments from teachers will appear here.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Assignments</h2>
-          </div>
-          <div className="p-6">
-            <div className="text-center py-8">
-              <span className="text-4xl">📋</span>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No upcoming assignments</h3>
-              <p className="mt-1 text-sm text-gray-500">New assignments from teachers will appear here.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Parent Tips */}
-      <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <span className="text-2xl">💡</span>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">Parenting Tip</h3>
-            <div className="mt-2 text-sm text-blue-700">
-              <p>Encourage your child to practice learning materials for 15-20 minutes daily. Consistent practice helps build strong foundations in early childhood development.</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

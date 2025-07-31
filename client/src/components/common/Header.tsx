@@ -32,8 +32,33 @@ const Header: React.FC = () => {
             {isAuthenticated && (
               <>
                 <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
-                <Link to="/materials" className="text-gray-600 hover:text-gray-900">My Materials</Link>
-                <Link to="/assignments" className="text-gray-600 hover:text-gray-900">Assignments</Link>
+                
+                {/* Teacher & School Admin Navigation */}
+                {(user?.role === 'teacher' || user?.role === 'school_admin') && (
+                  <>
+                    <Link to="/materials" className="text-gray-600 hover:text-gray-900">My Materials</Link>
+                    <Link to="/students" className="text-gray-600 hover:text-gray-900">Students</Link>
+                    <Link to="/assignments" className="text-gray-600 hover:text-gray-900">Assignments</Link>
+                  </>
+                )}
+                
+                {/* School Admin Only Navigation */}
+                {user?.role === 'school_admin' && (
+                  <>
+                    <Link to="/manage-teachers" className="text-gray-600 hover:text-gray-900">Teachers</Link>
+                    <Link to="/school-analytics" className="text-gray-600 hover:text-gray-900">Analytics</Link>
+                  </>
+                )}
+                
+                {/* System Admin Navigation */}
+                {user?.role === 'system_admin' && (
+                  <>
+                    <Link to="/admin/users" className="text-gray-600 hover:text-gray-900">Users</Link>
+                    <Link to="/admin/schools" className="text-gray-600 hover:text-gray-900">Schools</Link>
+                    <Link to="/system-analytics" className="text-gray-600 hover:text-gray-900">Analytics</Link>
+                    <Link to="/system-settings" className="text-gray-600 hover:text-gray-900">Settings</Link>
+                  </>
+                )}
               </>
             )}
           </nav>

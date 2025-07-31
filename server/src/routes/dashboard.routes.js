@@ -3,7 +3,7 @@ const router = express.Router();
 const { authMiddleware: authenticateToken, requireRole } = require('../middleware/auth.middleware');
 
 // Get teacher dashboard statistics
-router.get('/teacher/stats', authenticateToken, requireRole(['teacher']), async (req, res) => {
+router.get('/teacher/dashboard/stats', authenticateToken, requireRole(['teacher']), async (req, res) => {
   try {
     const teacherId = req.user.id;
     
@@ -72,6 +72,43 @@ router.get('/teacher/stats', authenticateToken, requireRole(['teacher']), async 
   } catch (error) {
     console.error('Dashboard stats error:', error);
     res.status(500).json({ message: 'Failed to fetch dashboard statistics' });
+  }
+});
+
+// Get teacher recent activity
+router.get('/teacher/dashboard/activity', authenticateToken, requireRole(['teacher']), async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    
+    // Mock recent activities data
+    const activities = [
+      {
+        id: '1',
+        studentName: 'Tinashe Mukamuri',
+        activityName: 'Draw Your Name',
+        score: 90,
+        completedAt: new Date().toISOString()
+      },
+      {
+        id: '2',
+        studentName: 'Chipo Ndoro',
+        activityName: 'Color Shapes',
+        score: 85,
+        completedAt: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        id: '3',
+        studentName: 'Tafadzwa Moyo',
+        activityName: 'Count to 10',
+        score: 78,
+        completedAt: new Date(Date.now() - 172800000).toISOString()
+      }
+    ];
+
+    res.json(activities);
+  } catch (error) {
+    console.error('Recent activity error:', error);
+    res.status(500).json({ message: 'Failed to fetch recent activity' });
   }
 });
 

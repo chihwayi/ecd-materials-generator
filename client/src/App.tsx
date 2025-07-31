@@ -13,6 +13,18 @@ import MaterialEditorPage from './pages/MaterialEditorPage.tsx';
 import MaterialViewerPage from './pages/MaterialViewerPage.tsx';
 import StudentsPage from './pages/StudentsPage.tsx';
 import SystemUsersPage from './pages/SystemUsersPage';
+import ManageTeachersPage from './pages/ManageTeachersPage';
+import SchoolStudentsPage from './pages/SchoolStudentsPage';
+import SchoolMaterialsPage from './pages/SchoolMaterialsPage';
+import SchoolAnalyticsPage from './pages/SchoolAnalyticsPage';
+import ManageClassesPage from './pages/ManageClassesPage';
+import PasswordRecoveryPage from './pages/PasswordRecoveryPage';
+import CreateStudentPage from './pages/CreateStudentPage';
+import ClassStudentsPage from './pages/ClassStudentsPage';
+import CreateAssignmentPage from './pages/CreateAssignmentPage';
+import TeacherAssignmentsPage from './pages/TeacherAssignmentsPage';
+import StudentAssignmentsPage from './pages/StudentAssignmentsPage';
+import SchoolSettingsPage from './pages/SchoolSettingsPage';
 import UserManagementPage from './pages/admin/UserManagementPage.tsx';
 import SchoolManagementPage from './pages/admin/SchoolManagementPage.tsx';
 import SystemAnalyticsPage from './pages/admin/SystemAnalyticsPage.tsx';
@@ -88,10 +100,7 @@ const AppContent: React.FC = () => {
             path="/assignments"
             element={
               <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
-                <div className="p-8 text-center">
-                  <h1 className="text-2xl font-bold">Assignments</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
-                </div>
+                <TeacherAssignmentsPage />
               </RoleProtectedRoute>
             }
           />
@@ -119,6 +128,14 @@ const AppContent: React.FC = () => {
             element={
               <RoleProtectedRoute allowedRoles={['system_admin']}>
                 <SystemUsersPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/students"
+            element={
+              <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
+                <StudentsPage />
               </RoleProtectedRoute>
             }
           />
@@ -178,6 +195,94 @@ const AppContent: React.FC = () => {
                   <h1 className="text-2xl font-bold">System Templates</h1>
                   <p className="text-gray-600 mt-2">Template management coming soon...</p>
                 </div>
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/manage-teachers"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <ManageTeachersPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/school-students"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <SchoolStudentsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/school-materials"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <SchoolMaterialsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/school-analytics"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <SchoolAnalyticsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/manage-classes"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <ManageClassesPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/password-recovery"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <PasswordRecoveryPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-student"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <CreateStudentPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/class-students/:classId"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <ClassStudentsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-assignment"
+            element={
+              <RoleProtectedRoute allowedRoles={['teacher']}>
+                <CreateAssignmentPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/student-assignments/:studentId"
+            element={
+              <RoleProtectedRoute allowedRoles={['parent']}>
+                <StudentAssignmentsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/school-settings"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <SchoolSettingsPage />
               </RoleProtectedRoute>
             }
           />

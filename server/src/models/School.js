@@ -36,6 +36,10 @@ const School = sequelize.define('School', {
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  defaultParentPassword: {
+    type: DataTypes.STRING,
+    defaultValue: 'parent123'
   }
 });
 

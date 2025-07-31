@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database.config');
+const { sequelize } = require('../utils/database');
 
 const Assignment = sequelize.define('Assignment', {
   id: {
@@ -11,48 +11,35 @@ const Assignment = sequelize.define('Assignment', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  description: DataTypes.TEXT,
-  instructions: DataTypes.TEXT,
-  materialId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'Material', key: 'id' }
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  instructions: {
+    type: DataTypes.TEXT
+  },
+  dueDate: {
+    type: DataTypes.DATE,
+    allowNull: false
   },
   teacherId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: { model: 'User', key: 'id' }
   },
-  studentIds: {
-    type: DataTypes.ARRAY(DataTypes.UUID),
-    allowNull: false
+  classId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'Class', key: 'id' }
   },
-  dueDate: DataTypes.DATE,
-  allowLateSubmission: {
+  schoolId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: { model: 'School', key: 'id' }
+  },
+  isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
-  },
-  maxAttempts: DataTypes.INTEGER,
-  timeLimit: DataTypes.INTEGER,
-  showProgress: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true
-  },
-  parentNotification: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true
-  },
-  reminderDays: {
-    type: DataTypes.ARRAY(DataTypes.INTEGER),
-    defaultValue: [3, 1]
-  },
-  notificationMethods: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
-    defaultValue: ['email']
-  },
-  status: {
-    type: DataTypes.ENUM('draft', 'active', 'completed', 'archived'),
-    defaultValue: 'draft'
   }
 });
 
