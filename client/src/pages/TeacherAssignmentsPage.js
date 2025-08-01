@@ -5,14 +5,22 @@ import api from '../services/api';
 const TeacherAssignmentsPage = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     fetchAssignments();
+    // Get current user info
+    const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
+    setUser(userInfo);
   }, []);
 
   const fetchAssignments = async () => {
     try {
-      const response = await api.get('/assignments/teacher');
+      // Get current user info to determine the correct endpoint
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const endpoint = user.role === 'teacher' ? '/assignments/teacher' : '/assignments/school-admin';
+      
+      const response = await api.get(endpoint);
       setAssignments(response.data.assignments);
     } catch (error) {
       console.error('Failed to fetch assignments:', error);
@@ -22,21 +30,23 @@ const TeacherAssignmentsPage = () => {
   };
 
   const getStatusColor = (assignment) => {
-    const submittedCount = assignment.studentAssignments?.filter(sa => sa.status === 'submitted').length || 0;
+    const completedCount = assignment.studentAssignments?.filter(sa => sa.status === 'completed').length || 0;
+    const gradedCount = assignment.studentAssignments?.filter(sa => sa.status === 'graded').length || 0;
     const totalCount = assignment.studentAssignments?.length || 0;
     
-    if (submittedCount === totalCount && totalCount > 0) return 'bg-green-100 text-green-800';
-    if (submittedCount > 0) return 'bg-yellow-100 text-yellow-800';
+    if (gradedCount === totalCount && totalCount > 0) return 'bg-green-100 text-green-800';
+    if (completedCount > 0) return 'bg-yellow-100 text-yellow-800';
     return 'bg-gray-100 text-gray-800';
   };
 
   const getStatusText = (assignment) => {
-    const submittedCount = assignment.studentAssignments?.filter(sa => sa.status === 'submitted').length || 0;
+    const completedCount = assignment.studentAssignments?.filter(sa => sa.status === 'completed').length || 0;
+    const gradedCount = assignment.studentAssignments?.filter(sa => sa.status === 'graded').length || 0;
     const totalCount = assignment.studentAssignments?.length || 0;
     
     if (totalCount === 0) return 'No students';
-    if (submittedCount === totalCount) return 'All submitted';
-    if (submittedCount > 0) return `${submittedCount}/${totalCount} submitted`;
+    if (gradedCount === totalCount) return 'All graded';
+    if (completedCount > 0) return `${completedCount}/${totalCount} completed`;
     return 'Pending';
   };
 
@@ -53,28 +63,52 @@ const TeacherAssignmentsPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Assignments</h1>
-            <p className="text-gray-600 mt-2">Manage and track student assignments</p>
+            <h1 className="text-3xl font-bold text-gray-900">Assignments</h1>
+            <p className="text-gray-600 mt-2">
+              {user?.role === 'teacher' 
+                ? 'View and manage student assignments' 
+                : 'Monitor assignments created by teachers'
+              }
+            </p>
           </div>
-          <Link
-            to="/create-assignment"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Create Assignment
-          </Link>
+          <div className="flex space-x-3">
+            {user?.role === 'teacher' && (
+              <Link
+                to="/create-assignment"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Create Assignment
+              </Link>
+            )}
+            {user?.role === 'school_admin' && (
+              <Link
+                to="/student-assignment-management"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                Manage Student Assignments
+              </Link>
+            )}
+          </div>
         </div>
 
         {assignments.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <div className="text-gray-400 text-6xl mb-4">📝</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No assignments yet</h3>
-            <p className="text-gray-600 mb-4">Create your first assignment to get started</p>
-            <Link
-              to="/create-assignment"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Create Assignment
-            </Link>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No assignments found</h3>
+            <p className="text-gray-600 mb-4">
+              {user?.role === 'teacher' 
+                ? 'No assignments have been created yet' 
+                : 'No assignments have been created by teachers yet'
+              }
+            </p>
+            {user?.role === 'teacher' && (
+              <Link
+                to="/create-assignment"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Create Assignment
+              </Link>
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -112,9 +146,14 @@ const TeacherAssignmentsPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-blue-600 hover:text-blue-900 mr-4">
-                        View Submissions
-                      </button>
+                      {user?.role === 'teacher' && (
+                        <Link
+                          to={`/assignments/${assignment.id}/review`}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
+                          Review Submissions
+                        </Link>
+                      )}
                       <button className="text-gray-600 hover:text-gray-900">
                         Edit
                       </button>

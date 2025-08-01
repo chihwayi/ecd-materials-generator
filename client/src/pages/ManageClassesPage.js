@@ -46,8 +46,19 @@ const ManageClassesPage = () => {
       setShowCreateModal(false);
       setFormData({ name: '', grade: '', description: '', teacherId: '', maxStudents: 30 });
       fetchClasses();
+      alert('Class created successfully!');
     } catch (error) {
       console.error('Failed to create class:', error);
+      
+      // Show specific error message
+      let errorMessage = 'Failed to create class';
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.details) {
+        errorMessage = error.response.data.details.join(', ');
+      }
+      
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -92,8 +103,8 @@ const ManageClassesPage = () => {
                     <div>
                       <span className="text-gray-500">Teacher:</span>
                       <span className="ml-1 font-medium">
-                        {classItem.teacher ? 
-                          `${classItem.teacher.first_name} ${classItem.teacher.last_name}` : 
+                        {classItem.classTeacher ? 
+                          `${classItem.classTeacher.firstName} ${classItem.classTeacher.lastName}` : 
                           'Unassigned'
                         }
                       </span>
@@ -159,7 +170,7 @@ const ManageClassesPage = () => {
                       <option value="">Select Teacher</option>
                       {teachers.map((teacher) => (
                         <option key={teacher.id} value={teacher.id}>
-                          {teacher.first_name} {teacher.last_name}
+                          {teacher.firstName} {teacher.lastName}
                         </option>
                       ))}
                     </select>

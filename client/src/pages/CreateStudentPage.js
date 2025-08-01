@@ -49,7 +49,16 @@ const CreateStudentPage = () => {
       });
     } catch (error) {
       console.error('Failed to create student:', error);
-      alert('Failed to create student');
+      
+      // Show specific error message
+      let errorMessage = 'Failed to create student';
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.details) {
+        errorMessage = error.response.data.details.join(', ');
+      }
+      
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -109,7 +118,7 @@ const CreateStudentPage = () => {
                 <option value="">Select Class</option>
                 {classes.map((classItem) => (
                   <option key={classItem.id} value={classItem.id}>
-                    {classItem.name} (Grade {classItem.grade}) - {classItem.teacher ? `${classItem.teacher.first_name} ${classItem.teacher.last_name}` : 'No Teacher'}
+                    {classItem.name} (Grade {classItem.grade}) - {classItem.classTeacher ? `${classItem.classTeacher.firstName} ${classItem.classTeacher.lastName}` : 'No Teacher'}
                   </option>
                 ))}
               </select>

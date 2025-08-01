@@ -24,6 +24,9 @@ import ClassStudentsPage from './pages/ClassStudentsPage';
 import CreateAssignmentPage from './pages/CreateAssignmentPage';
 import TeacherAssignmentsPage from './pages/TeacherAssignmentsPage';
 import StudentAssignmentsPage from './pages/StudentAssignmentsPage';
+import StudentAssignmentPage from './pages/StudentAssignmentPage';
+import StudentAssignmentCompletionPage from './pages/StudentAssignmentCompletionPage';
+import TeacherAssignmentReviewPage from './pages/TeacherAssignmentReviewPage';
 import SchoolSettingsPage from './pages/SchoolSettingsPage';
 import UserManagementPage from './pages/admin/UserManagementPage.tsx';
 import SchoolManagementPage from './pages/admin/SchoolManagementPage.tsx';
@@ -275,6 +278,30 @@ const AppContent: React.FC = () => {
             element={
               <RoleProtectedRoute allowedRoles={['parent']}>
                 <StudentAssignmentsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/student-assignment-management"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <StudentAssignmentPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/assignments/:assignmentId/complete"
+            element={
+              <RoleProtectedRoute allowedRoles={['parent']}>
+                <StudentAssignmentCompletionPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/assignments/:assignmentId/review"
+            element={
+              <RoleProtectedRoute allowedRoles={['teacher']}>
+                <TeacherAssignmentReviewPage />
               </RoleProtectedRoute>
             }
           />

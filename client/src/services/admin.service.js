@@ -227,6 +227,24 @@ export const adminService = {
   async backupDatabase() {
     const response = await api.post('/admin/backup/database');
     return response.data;
+  },
+
+  // Password reset functionality for system admin
+  async resetUserPassword(userId, newPassword = null) {
+    const response = await api.post('/admin/users/reset-password', {
+      userId,
+      newPassword
+    });
+    return response.data;
+  },
+
+  async getUsersForPasswordReset(role = 'all', search = '') {
+    const params = new URLSearchParams();
+    if (role !== 'all') params.append('role', role);
+    if (search) params.append('search', search);
+    
+    const response = await api.get(`/admin/users/reset-password?${params}`);
+    return response.data;
   }
 };
 

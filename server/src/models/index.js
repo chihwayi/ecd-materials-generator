@@ -23,11 +23,15 @@ Student.belongsTo(User, { foreignKey: 'teacherId', as: 'assignedTeacher' });
 School.hasMany(Student, { foreignKey: 'schoolId' });
 User.hasMany(Student, { foreignKey: 'teacherId', as: 'assignedStudents' });
 
-Assignment.belongsTo(Material, { foreignKey: 'materialId' });
-Assignment.belongsTo(User, { foreignKey: 'teacherId', as: 'assigningTeacher' });
-Material.hasMany(Assignment, { foreignKey: 'materialId' });
-User.hasMany(Assignment, { foreignKey: 'teacherId', as: 'createdAssignments' });
+// Assignment relationships
+Assignment.belongsTo(User, { foreignKey: 'teacherId', as: 'teacher' });
+Assignment.belongsTo(Class, { foreignKey: 'classId', as: 'class' });
+Assignment.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+User.hasMany(Assignment, { foreignKey: 'teacherId', as: 'assignments' });
+Class.hasMany(Assignment, { foreignKey: 'classId', as: 'assignments' });
+School.hasMany(Assignment, { foreignKey: 'schoolId', as: 'assignments' });
 
+// Progress relationships
 Progress.belongsTo(Assignment, { foreignKey: 'assignmentId' });
 Progress.belongsTo(Student, { foreignKey: 'studentId' });
 Assignment.hasMany(Progress, { foreignKey: 'assignmentId' });
@@ -47,10 +51,7 @@ Class.hasMany(Student, { foreignKey: 'classId', as: 'students' });
 Student.belongsTo(User, { foreignKey: 'parentId', as: 'parent' });
 User.hasMany(Student, { foreignKey: 'parentId', as: 'children' });
 
-// Assignment relationships
-Assignment.belongsTo(User, { foreignKey: 'teacherId', as: 'assignmentCreator' });
-Assignment.belongsTo(Class, { foreignKey: 'classId', as: 'class' });
-Assignment.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+
 
 // StudentAssignment relationships
 StudentAssignment.belongsTo(Assignment, { foreignKey: 'assignmentId', as: 'assignment' });

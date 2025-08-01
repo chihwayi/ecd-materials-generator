@@ -74,7 +74,8 @@ const MaterialEditorPage: React.FC = () => {
     elementId: string | null;
     currentColor: string;
     brushSize: number;
-  }>({ isDrawing: false, elementId: null, currentColor: '#FF0000', brushSize: 8 });
+    isEraser: boolean;
+  }>({ isDrawing: false, elementId: null, currentColor: '#FF0000', brushSize: 8, isEraser: false });
 
   const crayonColors = [
     '#FF0000', // Red
@@ -576,7 +577,17 @@ const MaterialEditorPage: React.FC = () => {
                   if (ctx) {
                     const x = (e.clientX - rect.left) * (canvas.width / rect.width);
                     const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-                    ctx.strokeStyle = drawingState.currentColor;
+                    
+                    if (drawingState.isEraser) {
+                      // Eraser mode - use destination-out composite operation
+                      ctx.globalCompositeOperation = 'destination-out';
+                      ctx.strokeStyle = 'rgba(0,0,0,1)';
+                    } else {
+                      // Drawing mode - use normal composite operation
+                      ctx.globalCompositeOperation = 'source-over';
+                      ctx.strokeStyle = drawingState.currentColor;
+                    }
+                    
                     ctx.lineWidth = drawingState.brushSize;
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
@@ -621,7 +632,17 @@ const MaterialEditorPage: React.FC = () => {
                   if (ctx && touch) {
                     const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
                     const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-                    ctx.strokeStyle = drawingState.currentColor;
+                    
+                    if (drawingState.isEraser) {
+                      // Eraser mode - use destination-out composite operation
+                      ctx.globalCompositeOperation = 'destination-out';
+                      ctx.strokeStyle = 'rgba(0,0,0,1)';
+                    } else {
+                      // Drawing mode - use normal composite operation
+                      ctx.globalCompositeOperation = 'source-over';
+                      ctx.strokeStyle = drawingState.currentColor;
+                    }
+                    
                     ctx.lineWidth = drawingState.brushSize;
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
@@ -747,7 +768,17 @@ const MaterialEditorPage: React.FC = () => {
                 if (ctx) {
                   const x = (e.clientX - rect.left) * (canvas.width / rect.width);
                   const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-                  ctx.strokeStyle = drawingState.currentColor;
+                  
+                  if (drawingState.isEraser) {
+                    // Eraser mode - use destination-out composite operation
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.strokeStyle = 'rgba(0,0,0,1)';
+                  } else {
+                    // Drawing mode - use normal composite operation
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = drawingState.currentColor;
+                  }
+                  
                   ctx.lineWidth = drawingState.brushSize;
                   ctx.lineCap = 'round';
                   ctx.lineJoin = 'round';
@@ -792,7 +823,17 @@ const MaterialEditorPage: React.FC = () => {
                 if (ctx && touch) {
                   const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
                   const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-                  ctx.strokeStyle = drawingState.currentColor;
+                  
+                  if (drawingState.isEraser) {
+                    // Eraser mode - use destination-out composite operation
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.strokeStyle = 'rgba(0,0,0,1)';
+                  } else {
+                    // Drawing mode - use normal composite operation
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = drawingState.currentColor;
+                  }
+                  
                   ctx.lineWidth = drawingState.brushSize;
                   ctx.lineCap = 'round';
                   ctx.lineJoin = 'round';
@@ -1058,16 +1099,19 @@ const MaterialEditorPage: React.FC = () => {
                       newOptions[index] = e.target.value;
                       updateElement(element.id, { content: { ...element.content, options: newOptions } });
                     }}
-                    className="flex-1 border border-gray-300 rounded px-3 py-2"
+                    className="w-48 border border-gray-300 rounded px-3 py-2 text-sm"
+                    placeholder={`Option ${index + 1}`}
                   />
-                  <input
-                    type="radio"
-                    name={`correct-${element.id}`}
-                    checked={element.content.correct === index}
-                    onChange={() => updateElement(element.id, { content: { ...element.content, correct: index } })}
-                    className="text-green-600"
-                  />
-                  <label className="text-sm">Correct</label>
+                  <div className="flex items-center space-x-1">
+                    <input
+                      type="radio"
+                      name={`correct-${element.id}`}
+                      checked={element.content.correct === index}
+                      onChange={() => updateElement(element.id, { content: { ...element.content, correct: index } })}
+                      className="text-green-600"
+                    />
+                    <label className="text-sm text-gray-600">Correct</label>
+                  </div>
                 </div>
               ))}
               <button
@@ -1075,7 +1119,7 @@ const MaterialEditorPage: React.FC = () => {
                   const newOptions = [...element.content.options, 'New Option'];
                   updateElement(element.id, { content: { ...element.content, options: newOptions } });
                 }}
-                className="text-blue-600 hover:text-blue-800 text-sm"
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
                 + Add Option
               </button>
@@ -1167,6 +1211,17 @@ const MaterialEditorPage: React.FC = () => {
             <div className="flex space-x-2">
               <button
                 type="button"
+                onClick={() => setDrawingState(prev => ({ ...prev, isEraser: !prev.isEraser }))}
+                className={`flex-1 px-3 py-1 rounded text-sm transition-colors ${
+                  drawingState.isEraser 
+                    ? 'bg-gray-800 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {drawingState.isEraser ? '✏️ Drawing' : '🧽 Eraser'}
+              </button>
+              <button
+                type="button"
                 onClick={() => {
                   const canvas = document.querySelector(`canvas[data-element-id="${element.id}"]`) as HTMLCanvasElement;
                   if (canvas) {
@@ -1191,7 +1246,7 @@ const MaterialEditorPage: React.FC = () => {
               </div>
             )}
             <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
-              🎨 Selected: {drawingState.currentColor} | Brush: {drawingState.brushSize}px
+              🎨 {drawingState.isEraser ? 'Eraser' : `Color: ${drawingState.currentColor}`} | Brush: {drawingState.brushSize}px
             </div>
           </div>
         )}
@@ -1248,8 +1303,43 @@ const MaterialEditorPage: React.FC = () => {
                 className="w-full"
               />
             </div>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={() => setDrawingState(prev => ({ ...prev, isEraser: !prev.isEraser }))}
+                className={`flex-1 px-3 py-1 rounded text-sm transition-colors ${
+                  drawingState.isEraser 
+                    ? 'bg-gray-800 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {drawingState.isEraser ? '✏️ Drawing' : '🧽 Eraser'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const canvas = document.querySelector(`canvas[data-element-id="${element.id}"]`) as HTMLCanvasElement;
+                  if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                      ctx.fillStyle = 'white';
+                      ctx.fillRect(0, 0, canvas.width, canvas.height);
+                      const dataURL = canvas.toDataURL();
+                      updateElement(element.id, { content: { ...element.content, canvasData: dataURL } });
+                      console.log('Canvas cleared and saved');
+                    }
+                  }
+                }}
+                className="flex-1 bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+              >
+                Clear Canvas
+              </button>
+            </div>
             <div className="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
               ✏️ This drawing task covers the entire canvas area - students draw directly with touch or stylus!
+            </div>
+            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+              🎨 {drawingState.isEraser ? 'Eraser' : `Color: ${drawingState.currentColor}`} | Brush: {drawingState.brushSize}px
             </div>
           </div>
         )}

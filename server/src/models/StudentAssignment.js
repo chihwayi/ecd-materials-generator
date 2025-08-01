@@ -18,8 +18,15 @@ const StudentAssignment = sequelize.define('StudentAssignment', {
     references: { model: 'Student', key: 'id' }
   },
   status: {
-    type: DataTypes.ENUM('assigned', 'in_progress', 'submitted', 'graded'),
+    type: DataTypes.ENUM('assigned', 'in_progress', 'submitted', 'completed', 'graded'),
     defaultValue: 'assigned'
+  },
+  submissions: {
+    type: DataTypes.JSON,
+    defaultValue: {}
+  },
+  completedAt: {
+    type: DataTypes.DATE
   },
   submissionText: {
     type: DataTypes.TEXT

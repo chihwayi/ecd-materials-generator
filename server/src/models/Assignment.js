@@ -37,6 +37,18 @@ const Assignment = sequelize.define('Assignment', {
     allowNull: false,
     references: { model: 'School', key: 'id' }
   },
+  type: {
+    type: DataTypes.ENUM('material', 'custom'),
+    defaultValue: 'material'
+  },
+  materials: {
+    type: DataTypes.JSON,
+    defaultValue: []
+  },
+  customTasks: {
+    type: DataTypes.JSON,
+    defaultValue: []
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true

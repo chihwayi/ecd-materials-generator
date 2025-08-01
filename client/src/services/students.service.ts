@@ -36,12 +36,18 @@ export interface ProgressRecord {
 class StudentsService {
   async getStudents(): Promise<Student[]> {
     try {
-      const response = await api.get('/teacher/students');
+      // Get current user info to determine the correct endpoint
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const endpoint = user.role === 'teacher' ? '/teacher/students' : '/school-admin/students';
+      
+      const response = await api.get(endpoint);
       return response.data.students.map(student => ({
         id: student.id,
         name: `${student.firstName} ${student.lastName}`,
-        parentName: student.parentName || 'N/A',
-        parentEmail: student.parentEmail || 'N/A',
+        parentName: student.parent?.firstName && student.parent?.lastName 
+          ? `${student.parent.firstName} ${student.parent.lastName}` 
+          : student.parentName || 'N/A',
+        parentEmail: student.parent?.email || student.parentEmail || 'N/A',
         age: student.age,
         className: student.class?.name || 'N/A',
         enrollmentDate: student.createdAt?.split('T')[0] || 'N/A',
@@ -97,7 +103,9 @@ class StudentsService {
 
   async getStudentById(studentId: string): Promise<Student> {
     try {
-      const response = await api.get(`/students/${studentId}`);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const baseEndpoint = user.role === 'teacher' ? '/teacher' : '/school-admin';
+      const response = await api.get(`${baseEndpoint}/students/${studentId}`);
       return response.data;
     } catch (error) {
       console.warn('Student API unavailable, using fallback data:', error.message);
@@ -117,7 +125,9 @@ class StudentsService {
 
   async getStudentProgress(studentId: string): Promise<ProgressRecord[]> {
     try {
-      const response = await api.get(`/students/${studentId}/progress`);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const baseEndpoint = user.role === 'teacher' ? '/teacher' : '/school-admin';
+      const response = await api.get(`${baseEndpoint}/students/${studentId}/progress`);
       return response.data;
     } catch (error) {
       console.warn('Progress API unavailable, using fallback data:', error.message);
@@ -142,7 +152,9 @@ class StudentsService {
     notes: string;
   }): Promise<ProgressRecord> {
     try {
-      const response = await api.post(`/students/${studentId}/progress`, record);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const baseEndpoint = user.role === 'teacher' ? '/teacher' : '/school-admin';
+      const response = await api.post(`${baseEndpoint}/students/${studentId}/progress`, record);
       return response.data;
     } catch (error) {
       console.warn('Add progress API unavailable, using fallback:', error.message);

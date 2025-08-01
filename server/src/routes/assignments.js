@@ -10,7 +10,7 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const { title, description, instructions, dueDate, classId } = req.body;
+    const { title, description, instructions, dueDate, classId, type, materials, customTasks } = req.body;
 
     // Verify teacher owns the class
     const classItem = await Class.findOne({
@@ -29,7 +29,10 @@ router.post('/', authMiddleware, async (req, res) => {
       dueDate,
       teacherId: req.user.id,
       classId,
-      schoolId: req.user.schoolId
+      schoolId: req.user.schoolId,
+      type: type || 'material',
+      materials: materials || [],
+      customTasks: customTasks || []
     });
 
     // Get all students in the class
@@ -90,6 +93,46 @@ router.get('/teacher', authMiddleware, async (req, res) => {
     res.json({ assignments });
   } catch (error) {
     console.error('Error fetching assignments:', error);
+    res.status(500).json({ error: 'Failed to fetch assignments' });
+  }
+});
+
+// Get school admin assignments (all assignments in school)
+router.get('/school-admin', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'school_admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const assignments = await Assignment.findAll({
+      where: { schoolId: req.user.schoolId },
+      include: [
+        {
+          model: Class,
+          as: 'class',
+          attributes: ['name', 'grade']
+        },
+        {
+          model: User,
+          as: 'teacher',
+          attributes: ['firstName', 'lastName', 'email']
+        },
+        {
+          model: StudentAssignment,
+          as: 'studentAssignments',
+          include: [{
+            model: Student,
+            as: 'student',
+            attributes: ['firstName', 'lastName']
+          }]
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({ assignments });
+  } catch (error) {
+    console.error('Error fetching school assignments:', error);
     res.status(500).json({ error: 'Failed to fetch assignments' });
   }
 });
@@ -207,6 +250,149 @@ router.post('/grade/:studentAssignmentId', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error grading assignment:', error);
     res.status(500).json({ error: 'Failed to grade assignment' });
+  }
+});
+
+// Get assignment for student completion
+router.get('/:assignmentId/student', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'parent') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { studentId } = req.query;
+
+    // Verify parent owns the student
+    const student = await Student.findOne({
+      where: { id: studentId, parentId: req.user.id }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const studentAssignment = await StudentAssignment.findOne({
+      where: { 
+        assignmentId: req.params.assignmentId,
+        studentId 
+      },
+      include: [{
+        model: Assignment,
+        as: 'assignment',
+        include: [{
+          model: Class,
+          as: 'class'
+        }]
+      }]
+    });
+
+    if (!studentAssignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // If assignment type is material, fetch the materials
+    let materials = [];
+    if (studentAssignment.assignment.type === 'material' && studentAssignment.assignment.materials) {
+      const { Material } = require('../models');
+      materials = await Material.findAll({
+        where: { id: studentAssignment.assignment.materials }
+      });
+    }
+
+    res.json({
+      assignment: {
+        ...studentAssignment.assignment.toJSON(),
+        materials
+      },
+      studentSubmission: studentAssignment.submissions || {}
+    });
+  } catch (error) {
+    console.error('Error fetching assignment for student:', error);
+    res.status(500).json({ error: 'Failed to fetch assignment' });
+  }
+});
+
+// Complete assignment (student)
+router.post('/:assignmentId/complete', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'parent') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { studentId, submissions } = req.body;
+
+    // Verify parent owns the student
+    const student = await Student.findOne({
+      where: { id: studentId, parentId: req.user.id }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const studentAssignment = await StudentAssignment.findOne({
+      where: { 
+        assignmentId: req.params.assignmentId,
+        studentId 
+      }
+    });
+
+    if (!studentAssignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    await studentAssignment.update({
+      status: 'completed',
+      submissions,
+      completedAt: new Date()
+    });
+
+    res.json({ message: 'Assignment completed successfully' });
+  } catch (error) {
+    console.error('Error completing assignment:', error);
+    res.status(500).json({ error: 'Failed to complete assignment' });
+  }
+});
+
+// Get assignment submissions for teacher review
+router.get('/:assignmentId/submissions', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'teacher') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const assignment = await Assignment.findOne({
+      where: { 
+        id: req.params.assignmentId,
+        teacherId: req.user.id 
+      },
+      include: [{
+        model: Class,
+        as: 'class'
+      }]
+    });
+
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    const studentAssignments = await StudentAssignment.findAll({
+      where: { assignmentId: req.params.assignmentId },
+      include: [{
+        model: Student,
+        as: 'student',
+        attributes: ['firstName', 'lastName']
+      }],
+      order: [['createdAt', 'ASC']]
+    });
+
+    res.json({
+      assignment,
+      submissions: studentAssignments
+    });
+  } catch (error) {
+    console.error('Error fetching assignment submissions:', error);
+    res.status(500).json({ error: 'Failed to fetch submissions' });
   }
 });
 

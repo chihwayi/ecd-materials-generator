@@ -87,7 +87,7 @@ const SchoolStudentsPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {student.teacher ? `${student.teacher.first_name} ${student.teacher.last_name}` : 'Unassigned'}
+                      {student.assignedTeacher ? `${student.assignedTeacher.firstName} ${student.assignedTeacher.lastName}` : 'Unassigned'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {student.age || 'N/A'}

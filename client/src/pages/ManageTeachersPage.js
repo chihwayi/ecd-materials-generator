@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { schoolAdminService } from '../services/school-admin.service';
+import TeacherDetailsModal from '../components/school-admin/TeacherDetailsModal';
 
 const ManageTeachersPage = () => {
   const [teachers, setTeachers] = useState([]);
@@ -11,6 +12,8 @@ const ManageTeachersPage = () => {
     email: '',
     password: ''
   });
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedTeacherId, setSelectedTeacherId] = useState(null);
 
   useEffect(() => {
     fetchTeachers();
@@ -34,8 +37,39 @@ const ManageTeachersPage = () => {
       setShowCreateModal(false);
       setFormData({ firstName: '', lastName: '', email: '', password: '' });
       fetchTeachers();
+      alert('Teacher created successfully!');
     } catch (error) {
       console.error('Failed to create teacher:', error);
+      
+      // Show specific error message
+      let errorMessage = 'Failed to create teacher';
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.details) {
+        errorMessage = error.response.data.details.join(', ');
+      }
+      
+      alert(`Error: ${errorMessage}`);
+    }
+  };
+
+  const handleViewDetails = (teacherId) => {
+    setSelectedTeacherId(teacherId);
+    setShowDetailsModal(true);
+  };
+
+  const handleToggleStatus = async (teacherId) => {
+    if (!window.confirm('Are you sure you want to toggle this teacher\'s status?')) {
+      return;
+    }
+
+    try {
+      await schoolAdminService.toggleTeacherStatus(teacherId);
+      fetchTeachers(); // Refresh the list
+      alert('Teacher status updated successfully!');
+    } catch (error) {
+      console.error('Failed to toggle teacher status:', error);
+      alert('Failed to update teacher status');
     }
   };
 
@@ -92,11 +126,17 @@ const ManageTeachersPage = () => {
                       {new Date(teacher.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-blue-600 hover:text-blue-900 mr-3">
+                      <button 
+                        onClick={() => handleViewDetails(teacher.id)}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                      >
                         View Details
                       </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        Deactivate
+                      <button 
+                        onClick={() => handleToggleStatus(teacher.id)}
+                        className={`${teacher.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                      >
+                        {teacher.isActive ? 'Deactivate' : 'Activate'}
                       </button>
                     </td>
                   </tr>
@@ -173,6 +213,17 @@ const ManageTeachersPage = () => {
             </div>
           </div>
         )}
+
+        {/* Teacher Details Modal */}
+        <TeacherDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedTeacherId(null);
+            fetchTeachers(); // Refresh list in case changes were made
+          }}
+          teacherId={selectedTeacherId}
+        />
       </div>
     </div>
   );

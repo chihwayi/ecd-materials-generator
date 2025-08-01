@@ -11,11 +11,11 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/users.routes');
 const materialRoutes = require('./routes/materials.routes');
 const templateRoutes = require('./routes/templates.routes');
-const assignmentRoutes = require('./routes/assignments.routes');
-const analyticsRoutes = require('./routes/analytics.routes');
+const assignmentRoutes = require('./routes/assignments');
+// const analyticsRoutes = require('./routes/analytics.routes');
 const adminRoutes = require('./routes/admin.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
-const studentsRoutes = require('./routes/students.routes');
+const studentsRoutes = require('./routes/students');
 
 // Import middleware
 const { authMiddleware } = require('./middleware/auth.middleware');
@@ -51,7 +51,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 1000, // limit each IP to 1000 requests per windowMs (increased for development)
   message: 'Too many requests from this IP, please try again later.',
 });
 app.use('/api/', limiter);
@@ -82,17 +82,15 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/materials', materialRoutes);
 app.use('/api/v1/templates', templateRoutes);
 app.use('/api/v1/assignments', assignmentRoutes);
-app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/students', studentsRoutes);
 app.use('/api/v1/teacher', require('./routes/teacher'));
+app.use('/api/v1/dashboard', require('./routes/teacher-dashboard'));
 app.use('/api/v1/school-admin', require('./routes/school-admin'));
 app.use('/api/v1/classes', require('./routes/classes'));
 app.use('/api/v1/password-recovery', require('./routes/password-recovery'));
-app.use('/api/v1/students', require('./routes/students'));
 app.use('/api/v1/parent', require('./routes/parent'));
-app.use('/api/v1/assignments', require('./routes/assignments'));
 app.use('/api/v1/school', require('./routes/school-settings'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
 

@@ -15,8 +15,8 @@ router.get('/', authMiddleware, async (req, res) => {
       include: [
         {
           model: User,
-          as: 'teacher',
-          attributes: ['id', 'first_name', 'last_name', 'email']
+          as: 'classTeacher',
+          attributes: ['id', 'firstName', 'lastName', 'email']
         },
         {
           model: Student,
@@ -43,6 +43,32 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const { name, grade, description, teacherId, maxStudents } = req.body;
 
+    // Validate required fields
+    if (!name) {
+      return res.status(400).json({ error: 'Class name is required' });
+    }
+
+    // Validate maxStudents
+    if (maxStudents && (maxStudents < 1 || maxStudents > 50)) {
+      return res.status(400).json({ error: 'Max students must be between 1 and 50' });
+    }
+
+    // Verify teacher belongs to school if provided
+    if (teacherId) {
+      const teacher = await User.findOne({
+        where: { 
+          id: teacherId,
+          role: 'teacher',
+          schoolId: req.user.schoolId,
+          isActive: true
+        }
+      });
+      
+      if (!teacher) {
+        return res.status(400).json({ error: 'Invalid teacher selection' });
+      }
+    }
+
     const newClass = await Class.create({
       name,
       grade,
@@ -55,7 +81,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const classWithTeacher = await Class.findByPk(newClass.id, {
       include: [{
         model: User,
-        as: 'teacher',
+        as: 'classTeacher',
         attributes: ['id', 'firstName', 'lastName', 'email']
       }]
     });
@@ -66,6 +92,16 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating class:', error);
+    
+    // Handle Sequelize validation errors
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = error.errors.map(err => err.message);
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: validationErrors
+      });
+    }
+    
     res.status(500).json({ error: 'Failed to create class' });
   }
 });
@@ -87,7 +123,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const updatedClass = await Class.findByPk(req.params.id, {
       include: [{
         model: User,
-        as: 'teacher',
+        as: 'classTeacher',
         attributes: ['id', 'firstName', 'lastName', 'email']
       }]
     });
@@ -113,8 +149,8 @@ router.get('/:id/students', authMiddleware, async (req, res) => {
       where: { id: req.params.id, schoolId: req.user.schoolId },
       include: [{
         model: User,
-        as: 'teacher',
-        attributes: ['first_name', 'last_name']
+        as: 'classTeacher',
+        attributes: ['firstName', 'lastName']
       }]
     });
 
@@ -144,11 +180,11 @@ router.get('/available-teachers', authMiddleware, async (req, res) => {
     const teachers = await User.findAll({
       where: { 
         role: 'teacher',
-        school_id: req.user.schoolId,
-        is_active: true
+        schoolId: req.user.schoolId,
+        isActive: true
       },
-      attributes: ['id', 'first_name', 'last_name', 'email'],
-      order: [['first_name', 'ASC']]
+      attributes: ['id', 'firstName', 'lastName', 'email'],
+      order: [['firstName', 'ASC']]
     });
 
     res.json({ teachers });

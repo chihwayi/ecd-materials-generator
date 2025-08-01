@@ -81,4 +81,115 @@ router.get('/overview', authMiddleware, async (req, res) => {
   }
 });
 
+// System stats
+router.get('/system/stats', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'system_admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const [totalUsers, totalSchools, totalMaterials, totalStudents] = await Promise.all([
+      User.count(),
+      School.count(),
+      Material.count(),
+      Student.count()
+    ]);
+
+    // Get user counts by role
+    const usersByRole = {
+      system_admin: await User.count({ where: { role: 'system_admin' } }),
+      school_admin: await User.count({ where: { role: 'school_admin' } }),
+      teacher: await User.count({ where: { role: 'teacher' } }),
+      parent: await User.count({ where: { role: 'parent' } })
+    };
+
+    // Get user counts by subscription
+    const usersBySubscription = {
+      free: await User.count({ where: { subscriptionPlan: 'free' } }),
+      teacher: await User.count({ where: { subscriptionPlan: 'teacher' } }),
+      school: await User.count({ where: { subscriptionPlan: 'school' } }),
+      premium: await User.count({ where: { subscriptionPlan: 'premium' } })
+    };
+
+    res.json({
+      totalUsers,
+      totalSchools,
+      totalMaterials,
+      totalStudents,
+      activeUsers: totalUsers,
+      activeSchools: totalSchools,
+      systemHealth: 95,
+      usersByRole,
+      usersBySubscription,
+      recentActivity: []
+    });
+  } catch (error) {
+    console.error('Error fetching system stats:', error);
+    res.status(500).json({ error: 'Failed to fetch system stats' });
+  }
+});
+
+// System performance
+router.get('/system/performance', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'system_admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const mockData = {
+      cpu: 45,
+      memory: {
+        used: 512,
+        total: 1024
+      },
+      disk: 38,
+      network: 78,
+      database: {
+        status: 'Connected',
+        activeConnections: 12
+      },
+      responseTime: {
+        avg: 150,
+        min: 50,
+        max: 300
+      },
+      uptime: 7200
+    };
+
+    res.json(mockData);
+  } catch (error) {
+    console.error('Error fetching system performance:', error);
+    res.status(500).json({ error: 'Failed to fetch system performance' });
+  }
+});
+
+// School analytics
+router.get('/schools/analytics', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'system_admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const schools = await School.findAll({
+      include: [{
+        model: User,
+        attributes: ['id', 'role']
+      }]
+    });
+
+    const analytics = schools.map(school => ({
+      id: school.id,
+      name: school.name,
+      userCount: school.Users?.length || 0,
+      teacherCount: school.Users?.filter(u => u.role === 'teacher').length || 0,
+      adminCount: school.Users?.filter(u => u.role === 'school_admin').length || 0
+    }));
+
+    res.json(analytics);
+  } catch (error) {
+    console.error('Error fetching school analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch school analytics' });
+  }
+});
+
 module.exports = router;

@@ -24,10 +24,10 @@ router.post('/:id/create-parent', authMiddleware, async (req, res) => {
     const existingParent = await User.findOne({ where: { email: parentEmail } });
     if (existingParent) {
       // Link existing parent to student
-      await Student.update(
-        { parent_id: existingParent.id, parent_name: parentName, parent_email: parentEmail, parent_phone: parentPhone },
-        { where: { id: req.params.id, school_id: req.user.schoolId } }
-      );
+          await Student.update(
+      { parentId: existingParent.id, parentName: parentName, parentEmail: parentEmail, parentPhone: parentPhone },
+      { where: { id: req.params.id, schoolId: req.user.schoolId } }
+    );
       
       return res.json({
         message: 'Student linked to existing parent account',
@@ -55,8 +55,8 @@ router.post('/:id/create-parent', authMiddleware, async (req, res) => {
     });
 
     await Student.update(
-      { parent_id: parentUser.id, parent_name: parentName, parent_email: parentEmail, parent_phone: parentPhone },
-      { where: { id: req.params.id, school_id: req.user.schoolId } }
+      { parentId: parentUser.id, parentName: parentName, parentEmail: parentEmail, parentPhone: parentPhone },
+      { where: { id: req.params.id, schoolId: req.user.schoolId } }
     );
 
     res.json({
@@ -82,6 +82,28 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const { firstName, lastName, age, grade, classId, parentName, parentEmail, parentPhone, language } = req.body;
 
+    // Validate required fields
+    if (!firstName || !lastName) {
+      return res.status(400).json({ error: 'First name and last name are required' });
+    }
+
+    if (!classId) {
+      return res.status(400).json({ error: 'Class selection is required' });
+    }
+
+    // Validate age if provided
+    if (age && (age < 3 || age > 10)) {
+      return res.status(400).json({ error: 'Age must be between 3 and 10 years' });
+    }
+
+    // Validate email format if provided
+    if (parentEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(parentEmail)) {
+        return res.status(400).json({ error: 'Invalid parent email format' });
+      }
+    }
+
     // Verify class belongs to school
     const classItem = await Class.findOne({
       where: { id: classId, schoolId: req.user.schoolId }
@@ -94,22 +116,24 @@ router.post('/', authMiddleware, async (req, res) => {
     // Create parent account if email provided
     let parentUser = null;
     let isNewParent = false;
+    let defaultPassword = 'parent123';
+    
     if (parentEmail) {
       const existingParent = await User.findOne({ where: { email: parentEmail } });
       
       if (!existingParent) {
         // Get school's default parent password
         const school = await School.findByPk(req.user.schoolId);
-        const defaultPassword = school?.defaultParentPassword || 'parent123';
+        defaultPassword = school?.defaultParentPassword || 'parent123';
         const hashedPassword = await bcrypt.hash(defaultPassword, 12);
         
         parentUser = await User.create({
-          first_name: parentName || 'Parent',
-          last_name: lastName,
+          firstName: parentName || 'Parent',
+          lastName: lastName,
           email: parentEmail,
           password: hashedPassword,
           role: 'parent',
-          school_id: req.user.schoolId
+          schoolId: req.user.schoolId
         });
         isNewParent = true;
       } else {
@@ -127,7 +151,8 @@ router.post('/', authMiddleware, async (req, res) => {
       parentEmail,
       parentPhone,
       parentId: parentUser?.id,
-      schoolId: req.user.schoolId
+      schoolId: req.user.schoolId,
+      language: language || 'en'
     });
 
     res.status(201).json({ 
@@ -141,6 +166,21 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating student:', error);
+    
+    // Handle Sequelize validation errors
+    if (error.name === 'SequelizeValidationError') {
+      const validationErrors = error.errors.map(err => err.message);
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: validationErrors
+      });
+    }
+    
+    // Handle unique constraint errors
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ error: 'A student with this information already exists' });
+    }
+    
     res.status(500).json({ error: 'Failed to create student' });
   }
 });

@@ -167,4 +167,91 @@ router.get('/students', authMiddleware, async (req, res) => {
   }
 });
 
+// Get individual student details (teacher only)
+router.get('/students/:id', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'teacher') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const teacherId = req.user.id;
+    const studentId = req.params.id;
+
+    const student = await Student.findOne({
+      where: { 
+        id: studentId,
+        teacher_id: teacherId 
+      },
+      include: [{
+        model: Class,
+        as: 'class',
+        attributes: ['name', 'grade']
+      }]
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    res.json({ student });
+  } catch (error) {
+    console.error('Error fetching student:', error);
+    res.status(500).json({ error: 'Failed to fetch student' });
+  }
+});
+
+// Get student progress (teacher only)
+router.get('/students/:id/progress', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'teacher') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const teacherId = req.user.id;
+    const studentId = req.params.id;
+
+    // Verify student belongs to teacher
+    const student = await Student.findOne({
+      where: { 
+        id: studentId,
+        teacher_id: teacherId 
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // For now, return mock progress data
+    // In a real implementation, you would fetch from a Progress model
+    const progressRecords = [
+      {
+        id: '1',
+        studentId: studentId,
+        activity: 'Math Practice',
+        type: 'digital',
+        score: 85,
+        notes: 'Great work on addition!',
+        date: new Date().toISOString().split('T')[0],
+        recordedBy: 'Teacher'
+      },
+      {
+        id: '2',
+        studentId: studentId,
+        activity: 'Reading Comprehension',
+        type: 'offline',
+        score: 92,
+        notes: 'Excellent reading skills',
+        date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+        recordedBy: 'Teacher'
+      }
+    ];
+
+    res.json(progressRecords);
+  } catch (error) {
+    console.error('Error fetching student progress:', error);
+    res.status(500).json({ error: 'Failed to fetch student progress' });
+  }
+});
+
 module.exports = router;

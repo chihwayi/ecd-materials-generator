@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import DataTable, { Column } from '../../components/admin/DataTable.tsx';
 import Modal from '../../components/admin/Modal.tsx';
+import PasswordResetModal from '../../components/admin/PasswordResetModal.tsx';
 import { adminService, adminUtils } from '../../services/admin.service';
 import { User, School, CreateUserRequest, UpdateUserRequest, UserFilters } from '../../types/user.types';
 
@@ -20,6 +21,8 @@ const UserManagementPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
+  const [isPasswordResetModalOpen, setIsPasswordResetModalOpen] = useState(false);
+  const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
   const [formData, setFormData] = useState<CreateUserRequest>({
     email: '',
     password: '',
@@ -196,6 +199,11 @@ const UserManagementPage: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
+  const openPasswordResetModal = (user: User) => {
+    setSelectedUserForReset(user);
+    setIsPasswordResetModalOpen(true);
+  };
+
   const columns: Column<User>[] = [
     {
       key: 'select',
@@ -298,6 +306,15 @@ const UserManagementPage: React.FC = () => {
             className="text-blue-600 hover:text-blue-900 text-sm font-medium"
           >
             Edit
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openPasswordResetModal(user);
+            }}
+            className="text-orange-600 hover:text-orange-900 text-sm font-medium"
+          >
+            Reset Password
           </button>
           <button
             onClick={(e) => {
@@ -627,6 +644,16 @@ const UserManagementPage: React.FC = () => {
       >
         {renderUserForm()}
       </Modal>
+
+      {/* Password Reset Modal */}
+      <PasswordResetModal
+        isOpen={isPasswordResetModalOpen}
+        onClose={() => {
+          setIsPasswordResetModalOpen(false);
+          setSelectedUserForReset(null);
+        }}
+        selectedUser={selectedUserForReset}
+      />
     </div>
   );
 };

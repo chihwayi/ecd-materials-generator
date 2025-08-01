@@ -21,6 +21,7 @@ const SchoolSettingsPage = () => {
       setSettings(response.data.settings);
     } catch (error) {
       console.error('Failed to fetch settings:', error);
+      alert('Failed to fetch school settings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -33,7 +34,16 @@ const SchoolSettingsPage = () => {
       alert('Settings saved successfully!');
     } catch (error) {
       console.error('Failed to save settings:', error);
-      alert('Failed to save settings');
+      
+      // Show specific error message
+      let errorMessage = 'Failed to save settings';
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.details) {
+        errorMessage = error.response.data.details.join(', ');
+      }
+      
+      alert(`Error: ${errorMessage}`);
     } finally {
       setSaving(false);
     }

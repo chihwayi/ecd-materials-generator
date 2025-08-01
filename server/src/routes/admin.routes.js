@@ -1,9 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware: authenticateToken, requireRole } = require('../middleware/auth.middleware');
+const { authMiddleware } = require('../middleware/auth.middleware');
+const { User } = require('../models');
+const { Op } = require('sequelize');
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
 // Admin-only middleware
-const adminOnly = [authenticateToken, requireRole(['system_admin'])];
+const adminOnly = (req, res, next) => {
+  authMiddleware(req, res, (err) => {
+    if (err) return next(err);
+    if (req.user.role !== 'system_admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    next();
+  });
+};
 
 // System logs endpoint
 router.get('/logs', adminOnly, async (req, res) => {
@@ -232,6 +244,70 @@ router.post('/backup/database', adminOnly, async (req, res) => {
   } catch (error) {
     console.error('Database backup error:', error);
     res.status(500).json({ message: 'Failed to start database backup' });
+  }
+});
+
+// Password reset endpoints for system admin
+router.post('/users/reset-password', adminOnly, async (req, res) => {
+  try {
+    const { userId, newPassword } = req.body;
+
+    // Find the user to reset password for
+    const targetUser = await User.findByPk(userId);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate new password if not provided
+    const password = newPassword || crypto.randomBytes(8).toString('hex');
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    await User.update(
+      { password: hashedPassword },
+      { where: { id: userId } }
+    );
+
+    res.json({ 
+      message: 'Password reset successfully',
+      temporaryPassword: newPassword ? undefined : password,
+      userEmail: targetUser.email,
+      userName: `${targetUser.first_name} ${targetUser.last_name}`
+    });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// Get users for password reset (system admin can reset any user)
+router.get('/users/reset-password', adminOnly, async (req, res) => {
+  try {
+    const { role, search } = req.query;
+    const whereClause = {};
+
+    if (role && role !== 'all') {
+      whereClause.role = role;
+    }
+
+    if (search) {
+      whereClause[Op.or] = [
+        { first_name: { [Op.iLike]: `%${search}%` } },
+        { last_name: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    const users = await User.findAll({
+      where: whereClause,
+      attributes: ['id', 'first_name', 'last_name', 'email', 'role', 'is_active'],
+      order: [['first_name', 'ASC']],
+      limit: 100
+    });
+
+    res.json({ users });
+  } catch (error) {
+    console.error('Error fetching users for password reset:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
 
