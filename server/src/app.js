@@ -16,6 +16,7 @@ const assignmentRoutes = require('./routes/assignments');
 const adminRoutes = require('./routes/admin.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const studentsRoutes = require('./routes/students');
+const communicationRoutes = require('./routes/communication');
 
 // Import middleware
 const { authMiddleware } = require('./middleware/auth.middleware');
@@ -93,6 +94,7 @@ app.use('/api/v1/password-recovery', require('./routes/password-recovery'));
 app.use('/api/v1/parent', require('./routes/parent'));
 app.use('/api/v1/school', require('./routes/school-settings'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
+app.use('/api/v1/communication', communicationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

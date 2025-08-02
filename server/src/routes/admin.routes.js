@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth.middleware');
-const { User } = require('../models');
+const { User, School, Material, Assignment } = require('../models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
@@ -16,6 +16,61 @@ const adminOnly = (req, res, next) => {
     next();
   });
 };
+
+// Delegated Admin Dashboard Stats
+router.get('/delegated-admin/dashboard/stats', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'delegated_admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // For now, return mock data since the School model doesn't have delegatedAdminId
+    // In production, this would query schools assigned to the delegated admin
+    const mockData = {
+      totalUsers: 8,
+      totalSchools: 2,
+      totalMaterials: 25,
+      totalAssignments: 15,
+      recentActivities: [
+        {
+          id: '1',
+          type: 'user_created',
+          description: 'New teacher account created',
+          schoolName: 'Springfield Elementary',
+          timestamp: new Date().toISOString()
+        },
+        {
+          id: '2',
+          type: 'material_created',
+          description: 'New learning material uploaded',
+          schoolName: 'Lincoln High School',
+          timestamp: new Date(Date.now() - 180000).toISOString()
+        }
+      ],
+      assignedSchools: [
+        {
+          id: '1',
+          name: 'Springfield Elementary',
+          userCount: 5,
+          materialCount: 12,
+          lastActivity: new Date().toISOString()
+        },
+        {
+          id: '2',
+          name: 'Lincoln High School',
+          userCount: 3,
+          materialCount: 13,
+          lastActivity: new Date(Date.now() - 360000).toISOString()
+        }
+      ]
+    };
+
+    res.json(mockData);
+  } catch (error) {
+    console.error('Error fetching delegated admin dashboard stats:', error);
+    res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+  }
+});
 
 // System logs endpoint
 router.get('/logs', adminOnly, async (req, res) => {

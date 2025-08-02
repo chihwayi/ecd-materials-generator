@@ -29,4 +29,9 @@ api.interceptors.response.use(
   }
 );
 
+// Parent Dashboard
+export const getParentDashboardStats = () => api.get('/parent/dashboard/stats');
+export const markAssignmentViewed = (assignmentId, studentId) => 
+  api.post(`/parent/assignment/${assignmentId}/viewed`, { studentId });
+
 export default api;

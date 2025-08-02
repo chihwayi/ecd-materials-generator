@@ -30,17 +30,17 @@ const TeacherAssignmentsPage = () => {
   };
 
   const getStatusColor = (assignment) => {
-    const completedCount = assignment.studentAssignments?.filter(sa => sa.status === 'completed').length || 0;
+    const completedCount = assignment.studentAssignments?.filter(sa => sa.status === 'completed' || sa.status === 'submitted').length || 0;
     const gradedCount = assignment.studentAssignments?.filter(sa => sa.status === 'graded').length || 0;
     const totalCount = assignment.studentAssignments?.length || 0;
     
-    if (gradedCount === totalCount && totalCount > 0) return 'bg-green-100 text-green-800';
-    if (completedCount > 0) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-gray-100 text-gray-800';
+    if (gradedCount === totalCount && totalCount > 0) return 'bg-gradient-to-r from-green-500 to-green-600 text-white';
+    if (completedCount > 0) return 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white';
+    return 'bg-gradient-to-r from-gray-500 to-gray-600 text-white';
   };
 
   const getStatusText = (assignment) => {
-    const completedCount = assignment.studentAssignments?.filter(sa => sa.status === 'completed').length || 0;
+    const completedCount = assignment.studentAssignments?.filter(sa => sa.status === 'completed' || sa.status === 'submitted').length || 0;
     const gradedCount = assignment.studentAssignments?.filter(sa => sa.status === 'graded').length || 0;
     const totalCount = assignment.studentAssignments?.length || 0;
     
@@ -50,52 +50,77 @@ const TeacherAssignmentsPage = () => {
     return 'Pending';
   };
 
+  const canEditAssignment = (assignment) => {
+    const hasSubmissions = assignment.studentAssignments?.some(sa => 
+      sa.status === 'completed' || sa.status === 'submitted' || sa.status === 'graded'
+    );
+    return !hasSubmissions;
+  };
+
+  const getAssignmentTypeIcon = (type) => {
+    switch (type) {
+      case 'worksheet': return '📝';
+      case 'quiz': return '📊';
+      case 'project': return '🎨';
+      case 'homework': return '📚';
+      default: return '📄';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Assignments</h1>
-            <p className="text-gray-600 mt-2">
-              {user?.role === 'teacher' 
-                ? 'View and manage student assignments' 
-                : 'Monitor assignments created by teachers'
-              }
-            </p>
-          </div>
-          <div className="flex space-x-3">
-            {user?.role === 'teacher' && (
-              <Link
-                to="/create-assignment"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Create Assignment
-              </Link>
-            )}
-            {user?.role === 'school_admin' && (
-              <Link
-                to="/student-assignment-management"
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-              >
-                Manage Student Assignments
-              </Link>
-            )}
+        {/* Header */}
+        <div className="bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 rounded-xl shadow-lg p-8 text-white mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">📝 Assignments</h1>
+              <p className="text-orange-100 text-lg">
+                {user?.role === 'teacher' 
+                  ? 'View and manage student assignments' 
+                  : 'Monitor assignments created by teachers'
+                }
+              </p>
+            </div>
+            <div className="text-6xl opacity-20">📚</div>
           </div>
         </div>
 
+        {/* Action Buttons */}
+        <div className="mb-8 flex justify-end space-x-4">
+          {user?.role === 'teacher' && (
+            <Link
+              to="/create-assignment"
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center"
+            >
+              <span className="text-2xl mr-2">➕</span>
+              <span className="font-semibold">Create Assignment</span>
+            </Link>
+          )}
+          {user?.role === 'school_admin' && (
+            <Link
+              to="/student-assignment-management"
+              className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center"
+            >
+              <span className="text-2xl mr-2">⚙️</span>
+              <span className="font-semibold">Manage Student Assignments</span>
+            </Link>
+          )}
+        </div>
+
         {assignments.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <div className="text-gray-400 text-6xl mb-4">📝</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No assignments found</h3>
-            <p className="text-gray-600 mb-4">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
+            <div className="text-6xl mb-4">📝</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No assignments found</h3>
+            <p className="text-gray-600 mb-6">
               {user?.role === 'teacher' 
                 ? 'No assignments have been created yet' 
                 : 'No assignments have been created by teachers yet'
@@ -104,64 +129,80 @@ const TeacherAssignmentsPage = () => {
             {user?.role === 'teacher' && (
               <Link
                 to="/create-assignment"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300"
               >
-                Create Assignment
+                <span className="text-2xl mr-2">➕</span>
+                <span>Create Your First Assignment</span>
               </Link>
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assignment</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {assignments.map((assignment) => (
-                  <tr key={assignment.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{assignment.title}</div>
-                        <div className="text-sm text-gray-500">{assignment.description}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{assignment.class?.name}</div>
-                      <div className="text-sm text-gray-500">{assignment.class?.grade}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {new Date(assignment.dueDate).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(assignment)}`}>
-                        {getStatusText(assignment)}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {assignments.map((assignment) => (
+              <div
+                key={assignment.id}
+                className="group bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2"
+              >
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center">
+                      <span className="text-2xl text-white">{getAssignmentTypeIcon(assignment.type)}</span>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment)}`}>
+                      {getStatusText(assignment)}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
+                    {assignment.title}
+                  </h3>
+                  
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                    {assignment.description}
+                  </p>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2 py-1 rounded-md text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                        {assignment.subject}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {user?.role === 'teacher' && (
-                        <Link
-                          to={`/assignments/${assignment.id}/review`}
-                          className="text-blue-600 hover:text-blue-900 mr-4"
-                        >
-                          Review Submissions
-                        </Link>
-                      )}
-                      <button className="text-gray-600 hover:text-gray-900">
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <span className="text-xs text-gray-500">
+                        {assignment.gradeLevel}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 text-xs text-gray-500">
+                      <span>📅 Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                      <span>👥 {assignment.studentAssignments?.length || 0} students</span>
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-2">
+                    <Link
+                      to={`/assignments/${assignment.id}`}
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-center text-sm font-medium"
+                    >
+                      👁️ View
+                    </Link>
+                    {canEditAssignment(assignment) ? (
+                      <Link
+                        to={`/assignments/${assignment.id}/edit`}
+                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-center text-sm font-medium"
+                      >
+                        ✏️ Edit
+                      </Link>
+                    ) : (
+                      <Link
+                        to={`/assignments/${assignment.id}`}
+                        className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-center text-sm font-medium"
+                      >
+                        📝 Grade
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

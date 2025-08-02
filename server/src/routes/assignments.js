@@ -98,7 +98,7 @@ router.get('/teacher', authMiddleware, async (req, res) => {
 });
 
 // Get school admin assignments (all assignments in school)
-router.get('/school-admin', authMiddleware, async (req, res) => {
+router.get('/school', authMiddleware, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -111,11 +111,6 @@ router.get('/school-admin', authMiddleware, async (req, res) => {
           model: Class,
           as: 'class',
           attributes: ['name', 'grade']
-        },
-        {
-          model: User,
-          as: 'teacher',
-          attributes: ['firstName', 'lastName', 'email']
         },
         {
           model: StudentAssignment,
@@ -132,8 +127,45 @@ router.get('/school-admin', authMiddleware, async (req, res) => {
 
     res.json({ assignments });
   } catch (error) {
-    console.error('Error fetching school assignments:', error);
+    console.error('Error fetching assignments:', error);
     res.status(500).json({ error: 'Failed to fetch assignments' });
+  }
+});
+
+// Get single assignment with materials
+router.get('/:assignmentId', authMiddleware, async (req, res) => {
+  try {
+    const assignment = await Assignment.findOne({
+      where: { 
+        id: req.params.assignmentId,
+        teacherId: req.user.id 
+      },
+      include: [{
+        model: Class,
+        as: 'class'
+      }]
+    });
+
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // If assignment type is material, fetch the materials
+    let materials = [];
+    if (assignment.type === 'material' && assignment.materials) {
+      const { Material } = require('../models');
+      materials = await Material.findAll({
+        where: { id: assignment.materials }
+      });
+    }
+
+    res.json({
+      ...assignment.toJSON(),
+      materials
+    });
+  } catch (error) {
+    console.error('Error fetching assignment:', error);
+    res.status(500).json({ error: 'Failed to fetch assignment' });
   }
 });
 
@@ -155,17 +187,41 @@ router.get('/student/:studentId', authMiddleware, async (req, res) => {
 
     const assignments = await StudentAssignment.findAll({
       where: { studentId: req.params.studentId },
-      include: [{
-        model: Assignment,
-        as: 'assignment',
-        include: [{
-          model: User,
-          as: 'teacher',
+      include: [
+        {
+          model: Assignment,
+          as: 'assignment',
+          attributes: ['id', 'title', 'description', 'instructions', 'dueDate', 'type', 'materials', 'customTasks'],
+          include: [{
+            model: User,
+            as: 'teacher',
+            attributes: ['firstName', 'lastName']
+          }]
+        },
+        {
+          model: Student,
+          as: 'student',
           attributes: ['firstName', 'lastName']
-        }]
-      }],
+        }
+      ],
       order: [['createdAt', 'DESC']]
     });
+
+    // Fetch full material data for material-based assignments
+    const { Material } = require('../models');
+    for (let assignment of assignments) {
+      if (assignment.assignment.type === 'material' && assignment.assignment.materials && assignment.assignment.materials.length > 0) {
+        try {
+          const materials = await Material.findAll({
+            where: { id: assignment.assignment.materials }
+          });
+          assignment.assignment.materials = materials;
+        } catch (error) {
+          console.error('Error fetching materials:', error);
+          assignment.assignment.materials = [];
+        }
+      }
+    }
 
     res.json({ assignments });
   } catch (error) {
@@ -225,6 +281,17 @@ router.post('/grade/:studentAssignmentId', authMiddleware, async (req, res) => {
 
     const { grade, feedback } = req.body;
 
+    // Convert letter grade to numeric grade
+    const gradeMap = {
+      'A': 90,
+      'B': 80,
+      'C': 70,
+      'D': 60,
+      'F': 50
+    };
+
+    const numericGrade = gradeMap[grade] || parseInt(grade) || null;
+
     const studentAssignment = await StudentAssignment.findOne({
       where: { id: req.params.studentAssignmentId },
       include: [{
@@ -240,7 +307,7 @@ router.post('/grade/:studentAssignmentId', authMiddleware, async (req, res) => {
 
     await studentAssignment.update({
       status: 'graded',
-      grade,
+      grade: numericGrade,
       feedback,
       gradedAt: new Date(),
       gradedBy: req.user.id

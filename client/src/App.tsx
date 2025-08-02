@@ -12,6 +12,7 @@ import MaterialsPage from './pages/MaterialsPage.tsx';
 import MaterialEditorPage from './pages/MaterialEditorPage.tsx';
 import MaterialViewerPage from './pages/MaterialViewerPage.tsx';
 import StudentsPage from './pages/StudentsPage.tsx';
+import TeacherMessagingPage from './pages/TeacherMessagingPage.tsx';
 import SystemUsersPage from './pages/SystemUsersPage';
 import ManageTeachersPage from './pages/ManageTeachersPage';
 import SchoolStudentsPage from './pages/SchoolStudentsPage';
@@ -27,6 +28,7 @@ import StudentAssignmentsPage from './pages/StudentAssignmentsPage';
 import StudentAssignmentPage from './pages/StudentAssignmentPage';
 import StudentAssignmentCompletionPage from './pages/StudentAssignmentCompletionPage';
 import TeacherAssignmentReviewPage from './pages/TeacherAssignmentReviewPage';
+import ParentAssignmentsPage from './pages/ParentAssignmentsPage.tsx';
 import SchoolSettingsPage from './pages/SchoolSettingsPage';
 import UserManagementPage from './pages/admin/UserManagementPage.tsx';
 import SchoolManagementPage from './pages/admin/SchoolManagementPage.tsx';
@@ -100,10 +102,34 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
+            path="/messaging"
+            element={
+              <RoleProtectedRoute allowedRoles={['teacher']}>
+                <TeacherMessagingPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
             path="/assignments"
             element={
               <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
                 <TeacherAssignmentsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/assignments/:id"
+            element={
+              <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
+                <TeacherAssignmentReviewPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/assignments/:id/edit"
+            element={
+              <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
+                <CreateAssignmentPage />
               </RoleProtectedRoute>
             }
           />
@@ -302,6 +328,22 @@ const AppContent: React.FC = () => {
             element={
               <RoleProtectedRoute allowedRoles={['teacher']}>
                 <TeacherAssignmentReviewPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/assignments"
+            element={
+              <RoleProtectedRoute allowedRoles={['parent']}>
+                <ParentAssignmentsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent-assignments/:studentId"
+            element={
+              <RoleProtectedRoute allowedRoles={['parent']}>
+                <ParentAssignmentsPage />
               </RoleProtectedRoute>
             }
           />

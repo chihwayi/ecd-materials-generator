@@ -448,68 +448,118 @@ const UserManagementPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600">Manage all system users</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-slate-600 via-blue-600 to-indigo-600 rounded-xl shadow-lg p-8 text-white mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">👥 User Management</h1>
+              <p className="text-slate-100 text-lg">Manage all users across the system</p>
+            </div>
+            <div className="text-6xl opacity-20">⚙️</div>
+          </div>
         </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={handleExportUsers}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            Export Users
-          </button>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Add User
-          </button>
-        </div>
-      </div>
 
-      {/* Bulk Actions */}
-      {showBulkActions && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">
-              {selectedUsers.length} user{selectedUsers.length !== 1 ? 's' : ''} selected
-            </span>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleBulkStatusUpdate(true)}
-                className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-md hover:bg-green-200"
-              >
-                Activate
-              </button>
-              <button
-                onClick={() => handleBulkStatusUpdate(false)}
-                className="text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md hover:bg-yellow-200"
-              >
-                Deactivate
-              </button>
-              <button
-                onClick={handleBulkDelete}
-                className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-md hover:bg-red-200"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedUsers([]);
-                  setShowBulkActions(false);
-                }}
-                className="text-sm bg-gray-100 text-gray-800 px-3 py-1 rounded-md hover:bg-gray-200"
-              >
-                Cancel
-              </button>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-700">Total Users</p>
+                <p className="text-3xl font-bold text-blue-900">{pagination.total}</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <span className="text-2xl text-white">👥</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-lg border border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-700">Active Users</p>
+                <p className="text-3xl font-bold text-green-900">
+                  {users.filter(u => u.isActive).length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                <span className="text-2xl text-white">✅</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-lg border border-purple-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-700">Teachers</p>
+                <p className="text-3xl font-bold text-purple-900">
+                  {users.filter(u => u.role === 'teacher').length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <span className="text-2xl text-white">👨‍🏫</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl shadow-lg border border-orange-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-orange-700">Schools</p>
+                <p className="text-3xl font-bold text-orange-900">{schools.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                <span className="text-2xl text-white">🏫</span>
+              </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Action Buttons */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center"
+            >
+              <span className="text-2xl mr-2">➕</span>
+              <span className="font-semibold">Create User</span>
+            </button>
+            
+            {showBulkActions && (
+              <>
+                <button
+                  onClick={() => handleBulkStatusUpdate(true)}
+                  className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200"
+                >
+                  ✅ Activate Selected
+                </button>
+                <button
+                  onClick={() => handleBulkStatusUpdate(false)}
+                  className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200"
+                >
+                  ❌ Deactivate Selected
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200"
+                >
+                  🗑️ Delete Selected
+                </button>
+              </>
+            )}
+          </div>
+          
+          <div className="flex space-x-3">
+            <button
+              onClick={handleExportUsers}
+              className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200"
+            >
+              📊 Export Users
+            </button>
+          </div>
+        </div>
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -654,6 +704,7 @@ const UserManagementPage: React.FC = () => {
         }}
         selectedUser={selectedUserForReset}
       />
+      </div>
     </div>
   );
 };

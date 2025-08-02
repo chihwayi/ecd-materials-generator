@@ -7,6 +7,7 @@ const Assignment = require('./Assignment');
 const Progress = require('./Progress');
 const Class = require('./Class');
 const StudentAssignment = require('./StudentAssignment');
+const Message = require('./Message');
 
 // Define associations
 User.belongsTo(School, { foreignKey: 'schoolId' });
@@ -51,14 +52,20 @@ Class.hasMany(Student, { foreignKey: 'classId', as: 'students' });
 Student.belongsTo(User, { foreignKey: 'parentId', as: 'parent' });
 User.hasMany(Student, { foreignKey: 'parentId', as: 'children' });
 
-
-
 // StudentAssignment relationships
 StudentAssignment.belongsTo(Assignment, { foreignKey: 'assignmentId', as: 'assignment' });
 StudentAssignment.belongsTo(Student, { foreignKey: 'studentId', as: 'student' });
 StudentAssignment.belongsTo(User, { foreignKey: 'gradedBy', as: 'grader' });
 Assignment.hasMany(StudentAssignment, { foreignKey: 'assignmentId', as: 'studentAssignments' });
 Student.hasMany(StudentAssignment, { foreignKey: 'studentId', as: 'assignments' });
+
+// Message relationships
+Message.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+Message.belongsTo(User, { foreignKey: 'recipientId', as: 'recipient' });
+Message.belongsTo(Student, { foreignKey: 'studentId', as: 'student' });
+User.hasMany(Message, { foreignKey: 'senderId', as: 'sentMessages' });
+User.hasMany(Message, { foreignKey: 'recipientId', as: 'receivedMessages' });
+Student.hasMany(Message, { foreignKey: 'studentId', as: 'messages' });
 
 module.exports = {
   User,
@@ -69,5 +76,6 @@ module.exports = {
   Assignment,
   Progress,
   Class,
-  StudentAssignment
+  StudentAssignment,
+  Message
 };

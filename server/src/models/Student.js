@@ -9,36 +9,49 @@ const Student = sequelize.define('Student', {
   },
   firstName: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    field: 'first_name'
   },
   lastName: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    field: 'last_name'
   },
   age: DataTypes.INTEGER,
   grade: DataTypes.STRING,
-  parentName: DataTypes.STRING,
+  parentName: {
+    type: DataTypes.STRING,
+    field: 'parent_name'
+  },
   parentEmail: {
     type: DataTypes.STRING,
-    validate: { isEmail: true }
+    validate: { isEmail: true },
+    field: 'parent_email'
   },
-  parentPhone: DataTypes.STRING,
+  parentPhone: {
+    type: DataTypes.STRING,
+    field: 'parent_phone'
+  },
   parentId: {
     type: DataTypes.UUID,
-    references: { model: 'User', key: 'id' }
+    references: { model: 'User', key: 'id' },
+    field: 'parent_id'
   },
   schoolId: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: { model: 'School', key: 'id' }
+    references: { model: 'School', key: 'id' },
+    field: 'school_id'
   },
   classId: {
     type: DataTypes.UUID,
-    references: { model: 'Class', key: 'id' }
+    references: { model: 'Class', key: 'id' },
+    field: 'class_id'
   },
   teacherId: {
     type: DataTypes.UUID,
-    references: { model: 'User', key: 'id' }
+    references: { model: 'User', key: 'id' },
+    field: 'teacher_id'
   },
   language: {
     type: DataTypes.ENUM('en', 'sn', 'nd'),
@@ -46,7 +59,8 @@ const Student = sequelize.define('Student', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
+    defaultValue: true,
+    field: 'is_active'
   }
 });
 

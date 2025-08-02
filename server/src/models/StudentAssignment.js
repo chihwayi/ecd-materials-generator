@@ -46,6 +46,10 @@ const StudentAssignment = sequelize.define('StudentAssignment', {
   gradedBy: {
     type: DataTypes.UUID,
     references: { model: 'User', key: 'id' }
+  },
+  parentViewed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 });
 

@@ -13,7 +13,7 @@ const Template = sequelize.define('Template', {
   },
   description: DataTypes.TEXT,
   category: {
-    type: DataTypes.ENUM('math', 'language', 'art', 'science', 'cultural'),
+    type: DataTypes.ENUM('math', 'language', 'art', 'science', 'cultural', 'puzzle'),
     allowNull: false
   },
   subcategory: DataTypes.STRING,
