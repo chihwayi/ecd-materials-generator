@@ -133,6 +133,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ user }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'text-green-600 bg-green-100';
+      case 'submitted': return 'text-yellow-600 bg-yellow-100';
       case 'assigned': return 'text-blue-600 bg-blue-100';
       case 'overdue': return 'text-red-600 bg-red-100';
       default: return 'text-gray-600 bg-gray-100';
@@ -142,6 +143,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ user }) => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'completed': return '✅ Done';
+      case 'submitted': return '📤 Submitted';
       case 'assigned': return '📝 Working';
       case 'overdue': return '⚠️ Late';
       default: return '📋 Pending';

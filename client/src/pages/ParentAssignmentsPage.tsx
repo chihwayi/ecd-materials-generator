@@ -66,8 +66,13 @@ const ParentAssignmentsPage: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (assignment: StudentAssignment) => {
+    // If assignment has a grade, it's graded regardless of status
+    if (assignment.grade !== null && assignment.grade !== undefined) {
+      return 'bg-green-100 text-green-800';
+    }
+    
+    switch (assignment.status) {
       case 'assigned': return 'bg-gray-100 text-gray-800';
       case 'in_progress': return 'bg-blue-100 text-blue-800';
       case 'submitted': return 'bg-yellow-100 text-yellow-800';
@@ -77,8 +82,13 @@ const ParentAssignmentsPage: React.FC = () => {
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
+  const getStatusText = (assignment: StudentAssignment) => {
+    // If assignment has a grade, it's graded regardless of status
+    if (assignment.grade !== null && assignment.grade !== undefined) {
+      return `⭐ Graded (${assignment.grade}%)`;
+    }
+    
+    switch (assignment.status) {
       case 'assigned': return '📝 Assigned';
       case 'in_progress': return '⏳ In Progress';
       case 'submitted': return '📤 Submitted (Waiting for Grade)';
@@ -108,9 +118,9 @@ const ParentAssignmentsPage: React.FC = () => {
       case 'pending':
         return assignment.status === 'assigned' || assignment.status === 'in_progress';
       case 'completed':
-        return assignment.status === 'submitted';
+        return assignment.status === 'submitted' || assignment.status === 'completed';
       case 'graded':
-        return assignment.status === 'graded';
+        return assignment.grade !== null && assignment.grade !== undefined;
       default:
         return true;
     }
@@ -118,7 +128,9 @@ const ParentAssignmentsPage: React.FC = () => {
 
   const pendingGrading = assignments.filter(a => a.status === 'submitted').length;
   const totalAssignments = assignments.length;
-  const completedAssignments = assignments.filter(a => a.status === 'graded').length;
+  const completedAssignments = assignments.filter(a => 
+    a.grade !== null && a.grade !== undefined
+  ).length;
 
   if (loading) {
     return (
@@ -231,8 +243,8 @@ const ParentAssignmentsPage: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-xl font-bold text-gray-800">{assignment.assignment.title}</h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(assignment.status)}`}>
-                      {getStatusText(assignment.status)}
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(assignment)}`}>
+                      {getStatusText(assignment)}
                     </span>
                   </div>
                   

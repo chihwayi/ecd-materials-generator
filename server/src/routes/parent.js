@@ -158,12 +158,21 @@ router.get('/dashboard/stats', authenticateToken, requireRole(['parent']), async
       const childAssignments = studentAssignments.filter(sa => sa.studentId === child.id);
       
       const totalAssignments = childAssignments.length;
-      const completedAssignments = childAssignments.filter(sa => sa.status === 'completed').length;
-      const pendingAssignments = childAssignments.filter(sa => sa.status === 'assigned').length;
+      
+      // Fix: Consider assignments with grades as completed
+      const completedAssignments = childAssignments.filter(sa => 
+        sa.status === 'completed' || sa.grade !== null
+      ).length;
+      
+      // Fix: Only count truly pending assignments (no grade, not completed)
+      const pendingAssignments = childAssignments.filter(sa => 
+        sa.status === 'assigned' && sa.grade === null
+      ).length;
+      
       const overdueAssignments = childAssignments.filter(sa => {
         const dueDate = new Date(sa.assignment.dueDate);
         const now = new Date();
-        return sa.status !== 'completed' && dueDate < now;
+        return (sa.status === 'assigned' || sa.status === 'in_progress') && dueDate < now;
       }).length;
 
       const gradedAssignments = childAssignments.filter(sa => sa.grade !== null).length;
@@ -192,12 +201,16 @@ router.get('/dashboard/stats', authenticateToken, requireRole(['parent']), async
 
     // Overall statistics
     const totalAssignments = studentAssignments.length;
-    const totalCompleted = studentAssignments.filter(sa => sa.status === 'completed').length;
-    const totalPending = studentAssignments.filter(sa => sa.status === 'assigned').length;
+    const totalCompleted = studentAssignments.filter(sa => 
+      sa.status === 'completed' || sa.grade !== null
+    ).length;
+    const totalPending = studentAssignments.filter(sa => 
+      sa.status === 'assigned' && sa.grade === null
+    ).length;
     const totalOverdue = studentAssignments.filter(sa => {
       const dueDate = new Date(sa.assignment.dueDate);
       const now = new Date();
-      return sa.status !== 'completed' && dueDate < now;
+      return (sa.status === 'assigned' || sa.status === 'in_progress') && dueDate < now;
     }).length;
 
     const overallStats = {
@@ -209,24 +222,34 @@ router.get('/dashboard/stats', authenticateToken, requireRole(['parent']), async
       overallCompletionRate: totalAssignments > 0 ? Math.round((totalCompleted / totalAssignments) * 100) : 0
     };
 
-    // Recent activities (last 7 days)
+    // Recent activities (last 7 days) - Fix status display
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
     const recentActivities = studentAssignments
       .filter(sa => sa.submittedAt && new Date(sa.submittedAt) >= sevenDaysAgo)
       .slice(0, 5)
-      .map(sa => ({
-        id: sa.id,
-        childName: children.find(c => c.id === sa.studentId)?.firstName || 'Unknown',
-        assignmentTitle: sa.assignment.title,
-        status: sa.status,
-        submittedAt: sa.submittedAt,
-        grade: sa.grade,
-        gradedAt: sa.gradedAt,
-        studentId: sa.studentId,
-        parentViewed: sa.parentViewed || false
-      }));
+      .map(sa => {
+        // Fix: Determine correct status for display
+        let displayStatus = sa.status;
+        if (sa.grade !== null) {
+          displayStatus = 'completed'; // Show as completed if graded
+        } else if (sa.status === 'assigned' && sa.submittedAt) {
+          displayStatus = 'submitted'; // Show as submitted if has submission date
+        }
+        
+        return {
+          id: sa.id,
+          childName: children.find(c => c.id === sa.studentId)?.firstName || 'Unknown',
+          assignmentTitle: sa.assignment.title,
+          status: displayStatus,
+          submittedAt: sa.submittedAt,
+          grade: sa.grade,
+          gradedAt: sa.gradedAt,
+          studentId: sa.studentId,
+          parentViewed: sa.parentViewed || false
+        };
+      });
 
     // Notifications
     const notifications = [];
@@ -235,7 +258,7 @@ router.get('/dashboard/stats', authenticateToken, requireRole(['parent']), async
     const overdueCount = studentAssignments.filter(sa => {
       const dueDate = new Date(sa.assignment.dueDate);
       const now = new Date();
-      return sa.status !== 'completed' && dueDate < now;
+      return (sa.status === 'assigned' || sa.status === 'in_progress') && dueDate < now;
     }).length;
     
     if (overdueCount > 0) {
