@@ -210,10 +210,10 @@ const TemplatesPage: React.FC = () => {
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(template.category)}`}>
-                    {template.category.charAt(0).toUpperCase() + template.category.slice(1)}
+                    {template.category?.charAt(0).toUpperCase() + template.category?.slice(1) || 'General'}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyColor(template.difficulty)}`}>
-                    {template.difficulty.charAt(0).toUpperCase() + template.difficulty.slice(1)}
+                    {template.difficulty?.charAt(0).toUpperCase() + template.difficulty?.slice(1) || 'Medium'}
                   </span>
                   <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
                     {getAgeGroupText(template.ageGroupMin, template.ageGroupMax)}

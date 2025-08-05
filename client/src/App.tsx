@@ -36,6 +36,8 @@ import ParentAssignmentsPage from './pages/ParentAssignmentsPage.tsx';
 import ProgressReportsPage from './pages/ProgressReportsPage.tsx';
 import ContactTeacherPage from './pages/ContactTeacherPage.tsx';
 import SchoolSettingsPage from './pages/SchoolSettingsPage';
+import SignatureManagementPage from './pages/SignatureManagementPage.tsx';
+import FinancialReportsPage from './pages/FinancialReportsPage.tsx';
 import UserManagementPage from './pages/admin/UserManagementPage.tsx';
 import SchoolManagementPage from './pages/admin/SchoolManagementPage.tsx';
 import SystemAnalyticsPage from './pages/admin/SystemAnalyticsPage.tsx';
@@ -59,6 +61,16 @@ const FinanceRedirect: React.FC = () => {
   return <FinanceDashboardPage />;
 };
 
+const DashboardRedirect: React.FC = () => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  
+  if (user?.role === 'finance') {
+    return <Navigate to="/finance" replace />;
+  }
+  
+  return <DashboardPage />;
+};
+
 const AppContent: React.FC = () => {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -80,7 +92,7 @@ const AppContent: React.FC = () => {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <DashboardRedirect />
               </ProtectedRoute>
             }
           />
@@ -407,6 +419,22 @@ const AppContent: React.FC = () => {
             element={
               <RoleProtectedRoute allowedRoles={['school_admin']}>
                 <SchoolSettingsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/signatures"
+            element={
+              <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
+                <SignatureManagementPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/financial-reports"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <FinancialReportsPage />
               </RoleProtectedRoute>
             }
           />

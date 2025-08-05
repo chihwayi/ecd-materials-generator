@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import api from '../services/api';
 
 const SchoolSettingsPage = () => {
@@ -6,10 +7,22 @@ const SchoolSettingsPage = () => {
     defaultParentPassword: '',
     schoolName: '',
     contactEmail: '',
-    contactPhone: ''
+    contactPhone: '',
+    primaryColor: '#2563eb',
+    secondaryColor: '#1d4ed8',
+    accentColor: '#fbbf24',
+    customFont: 'Inter',
+    schoolMotto: '',
+    customHeaderText: '',
+    brandingEnabled: true
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [currentLogo, setCurrentLogo] = useState('');
+  const [logoError, setLogoError] = useState(false);
+  const [currentFavicon, setCurrentFavicon] = useState('');
 
   useEffect(() => {
     fetchSettings();
@@ -17,11 +30,21 @@ const SchoolSettingsPage = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await api.get('/school/settings');
-      setSettings(response.data.settings);
+      const [settingsResponse, brandingResponse] = await Promise.all([
+        api.get('/school/settings'),
+        api.get('/school/branding')
+      ]);
+      
+      setSettings({
+        ...settingsResponse.data.settings,
+        ...brandingResponse.data.branding
+      });
+      
+      setCurrentLogo(brandingResponse.data.branding.logoUrl || '');
+      setCurrentFavicon(brandingResponse.data.branding.faviconUrl || '');
     } catch (error) {
       console.error('Failed to fetch settings:', error);
-      alert('Failed to fetch school settings. Please try again.');
+      toast.error('Failed to fetch school settings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -31,11 +54,10 @@ const SchoolSettingsPage = () => {
     setSaving(true);
     try {
       await api.put('/school/settings', settings);
-      alert('Settings saved successfully!');
+      toast.success('Settings saved successfully!');
     } catch (error) {
       console.error('Failed to save settings:', error);
       
-      // Show specific error message
       let errorMessage = 'Failed to save settings';
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
@@ -43,10 +65,63 @@ const SchoolSettingsPage = () => {
         errorMessage = error.response.data.details.join(', ');
       }
       
-      alert(`Error: ${errorMessage}`);
+      toast.error(`Error: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    try {
+      const response = await api.post('/school/upload-logo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setCurrentLogo(response.data.logoUrl);
+      toast.success('Logo uploaded successfully!');
+    } catch (error) {
+      console.error('Failed to upload logo:', error);
+      toast.error('Failed to upload logo. Please try again.');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleFaviconUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingFavicon(true);
+    const formData = new FormData();
+    formData.append('favicon', file);
+
+    try {
+      const response = await api.post('/school/upload-favicon', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setCurrentFavicon(response.data.faviconUrl);
+      toast.success('Favicon uploaded successfully!');
+    } catch (error) {
+      console.error('Failed to upload favicon:', error);
+      toast.error('Failed to upload favicon. Please try again.');
+    } finally {
+      setUploadingFavicon(false);
+    }
+  };
+
+  const handleColorChange = (field, value) => {
+    setSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   if (loading) {
@@ -58,49 +133,45 @@ const SchoolSettingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">School Settings</h1>
-          <p className="text-gray-600 mt-2">Configure school-wide settings and defaults</p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 rounded-xl shadow-lg p-8 text-white mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2 flex items-center">
+                ⚙️ School Settings & Branding
+              </h1>
+              <p className="text-purple-100 text-lg">
+                Customize your school's appearance and settings
+              </p>
+            </div>
+            <div className="text-6xl opacity-20">🎨</div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="space-y-6">
-            {/* Default Parent Password */}
-            <div className="border-b border-gray-200 pb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Parent Account Settings</h3>
-              <div className="max-w-md">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Default Password for New Parents
-                </label>
-                <input
-                  type="text"
-                  value={settings.defaultParentPassword}
-                  onChange={(e) => setSettings({...settings, defaultParentPassword: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="e.g., parent123"
-                />
-                <p className="text-sm text-gray-500 mt-2">
-                  This password will be automatically assigned to all new parent accounts. 
-                  Parents can change it after first login.
-                </p>
-              </div>
-            </div>
+        <div className="bg-white rounded-xl shadow-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">Configuration Panel</h2>
+          </div>
 
-            {/* School Information */}
-            <div className="border-b border-gray-200 pb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">School Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-6 space-y-8">
+            {/* Basic Settings */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                📋 Basic Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    School Name
+                    School Name *
                   </label>
                   <input
                     type="text"
                     value={settings.schoolName}
-                    onChange={(e) => setSettings({...settings, schoolName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    onChange={(e) => setSettings(prev => ({ ...prev, schoolName: e.target.value }))}
+                    className="input-field"
+                    required
                   />
                 </div>
                 <div>
@@ -110,8 +181,8 @@ const SchoolSettingsPage = () => {
                   <input
                     type="email"
                     value={settings.contactEmail}
-                    onChange={(e) => setSettings({...settings, contactEmail: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    onChange={(e) => setSettings(prev => ({ ...prev, contactEmail: e.target.value }))}
+                    className="input-field"
                   />
                 </div>
                 <div>
@@ -121,32 +192,240 @@ const SchoolSettingsPage = () => {
                   <input
                     type="tel"
                     value={settings.contactPhone}
-                    onChange={(e) => setSettings({...settings, contactPhone: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    onChange={(e) => setSettings(prev => ({ ...prev, contactPhone: e.target.value }))}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Default Parent Password
+                  </label>
+                  <input
+                    type="password"
+                    value={settings.defaultParentPassword}
+                    onChange={(e) => setSettings(prev => ({ ...prev, defaultParentPassword: e.target.value }))}
+                    className="input-field"
+                    placeholder="Minimum 6 characters"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Password Policy Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">Password Policy</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Default password will be used for all new parent accounts</li>
-                <li>• Parents will be prompted to change password on first login</li>
-                <li>• Use the Password Recovery page to reset individual parent passwords</li>
-                <li>• Recommended: Use a simple, memorable password like "parent123"</li>
-              </ul>
+            {/* Branding Settings */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                🎨 Branding & Customization
+              </h2>
+              
+              <div className="mb-6">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={settings.brandingEnabled}
+                    onChange={(e) => setSettings(prev => ({ ...prev, brandingEnabled: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Enable custom branding</span>
+                </label>
+              </div>
+
+              {settings.brandingEnabled && (
+                <div className="space-y-6">
+                  {/* Logo Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      School Logo
+                    </label>
+                    <div className="flex items-center space-x-4">
+      {currentLogo && !logoError ? (
+        <img
+          src={currentLogo.startsWith('/uploads/') ? `http://localhost:5000${currentLogo}` : currentLogo}
+          alt="School Logo"
+          className="w-16 h-16 object-contain border border-gray-200 rounded"
+          onError={() => setLogoError(true)}
+        />
+      ) : (
+        <img
+          src="/default-logo.png"
+          alt="Default Logo"
+          className="w-16 h-16 object-contain border border-gray-200 rounded opacity-50"
+        />
+      )}
+      <div>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleLogoUpload}
+          className="hidden"
+          id="logo-upload"
+          disabled={uploadingLogo}
+        />
+        <label
+          htmlFor="logo-upload"
+          className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+        >
+          {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+        </label>
+        <p className="text-xs text-gray-500 mt-1">Recommended: 300x300px, PNG/JPG</p>
+      </div>
+                    </div>
+                  </div>
+
+                  {/* Favicon Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Favicon
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      {currentFavicon && (
+                        <img 
+                          src={currentFavicon.startsWith('/uploads/') ? `http://localhost:5000${currentFavicon}` : currentFavicon} 
+                          alt="Favicon" 
+                          className="w-8 h-8 object-contain border border-gray-200 rounded"
+                        />
+                      )}
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFaviconUpload}
+                          className="hidden"
+                          id="favicon-upload"
+                          disabled={uploadingFavicon}
+                        />
+                        <label
+                          htmlFor="favicon-upload"
+                          className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${uploadingFavicon ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                          {uploadingFavicon ? 'Uploading...' : 'Upload Favicon'}
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">Recommended: 32x32px, ICO/PNG</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Color Scheme */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Primary Color
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="color"
+                          value={settings.primaryColor}
+                          onChange={(e) => handleColorChange('primaryColor', e.target.value)}
+                          className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={settings.primaryColor}
+                          onChange={(e) => handleColorChange('primaryColor', e.target.value)}
+                          className="input-field flex-1"
+                          placeholder="#2563eb"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Secondary Color
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="color"
+                          value={settings.secondaryColor}
+                          onChange={(e) => handleColorChange('secondaryColor', e.target.value)}
+                          className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={settings.secondaryColor}
+                          onChange={(e) => handleColorChange('secondaryColor', e.target.value)}
+                          className="input-field flex-1"
+                          placeholder="#1d4ed8"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Accent Color
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="color"
+                          value={settings.accentColor}
+                          onChange={(e) => handleColorChange('accentColor', e.target.value)}
+                          className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={settings.accentColor}
+                          onChange={(e) => handleColorChange('accentColor', e.target.value)}
+                          className="input-field flex-1"
+                          placeholder="#fbbf24"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Custom Text */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Custom Header Text
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.customHeaderText}
+                        onChange={(e) => setSettings(prev => ({ ...prev, customHeaderText: e.target.value }))}
+                        className="input-field"
+                        placeholder="Your School Name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        School Motto
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.schoolMotto}
+                        onChange={(e) => setSettings(prev => ({ ...prev, schoolMotto: e.target.value }))}
+                        className="input-field"
+                        placeholder="Excellence in Education"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Custom Font */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Custom Font
+                    </label>
+                    <select
+                      value={settings.customFont}
+                      onChange={(e) => setSettings(prev => ({ ...prev, customFont: e.target.value }))}
+                      className="input-field"
+                    >
+                      <option value="Inter">Inter (Default)</option>
+                      <option value="Roboto">Roboto</option>
+                      <option value="Open Sans">Open Sans</option>
+                      <option value="Lato">Lato</option>
+                      <option value="Poppins">Poppins</option>
+                      <option value="Montserrat">Montserrat</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Save Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-6 border-t border-gray-200">
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className={`px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-200 ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {saving ? 'Saving...' : 'Save Settings'}
+                {saving ? '💾 Saving...' : '💾 Save Settings'}
               </button>
             </div>
           </div>

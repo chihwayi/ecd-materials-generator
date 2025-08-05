@@ -1,32 +1,123 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { logout } from '../../store/authSlice';
 import NotificationBadge from './NotificationBadge.tsx';
+import api from '../../services/api';
+
+interface SchoolBranding {
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  customFont?: string;
+  schoolMotto?: string;
+  customHeaderText?: string;
+  brandingEnabled?: boolean;
+}
 
 const Header: React.FC = () => {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [schoolBranding, setSchoolBranding] = useState<SchoolBranding>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isAuthenticated && user?.schoolId) {
+      fetchSchoolBranding();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated, user?.schoolId]);
+
+  const fetchSchoolBranding = async () => {
+    try {
+      const response = await api.get('/school/branding');
+      setSchoolBranding(response.data.branding || {});
+    } catch (error) {
+      console.error('Failed to fetch school branding:', error);
+      // Set default branding if fetch fails
+      setSchoolBranding({});
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
   };
 
+  // Apply dynamic branding styles
+  const getBrandingStyles = () => {
+    const primaryColor = schoolBranding.primaryColor || '#2563eb';
+    const secondaryColor = schoolBranding.secondaryColor || '#1d4ed8';
+    const accentColor = schoolBranding.accentColor || '#fbbf24';
+
+    return {
+      headerBg: 'bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600',
+      textColor: 'text-white',
+      textHover: 'hover:text-white',
+      buttonBg: 'bg-white bg-opacity-20 hover:bg-opacity-30',
+      logoBg: 'bg-white bg-opacity-20 group-hover:bg-opacity-30',
+      customFont: schoolBranding.customFont ? `font-['${schoolBranding.customFont}']` : '',
+      inlineStyle: schoolBranding.brandingEnabled ? {
+        background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${primaryColor})`
+      } : {}
+    };
+  };
+
+  const styles = getBrandingStyles();
+
+  if (loading) {
+    return (
+      <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="animate-pulse bg-white bg-opacity-20 h-8 w-32 rounded"></div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <header className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 shadow-lg">
+    <header className={`${styles.headerBg} shadow-lg`} style={styles.inlineStyle}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-3 group">
-              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center group-hover:bg-opacity-30 transition-all duration-200">
-                <span className="text-white font-bold text-lg">🎓</span>
+              <div className={`w-10 h-10 ${styles.logoBg} rounded-xl flex items-center justify-center transition-all duration-200 overflow-hidden`}>
+                {schoolBranding.logoUrl ? (
+                  <img
+                    src={schoolBranding.logoUrl.startsWith('/uploads/') ? `http://localhost:5000${schoolBranding.logoUrl}` : schoolBranding.logoUrl}
+                    alt="School Logo"
+                    className="object-contain w-full h-full"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (nextElement) {
+                        nextElement.style.display = 'block';
+                      }
+                    }}
+                  />
+                ) : null}
+                <span 
+                  className="text-white font-bold text-lg" 
+                  style={{ display: schoolBranding.logoUrl ? 'none' : 'block' }}
+                >
+                  🎓
+                </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-white">EduConnect</span>
-                <span className="text-xs text-blue-100">Smart Learning Platform</span>
+                <span className={`text-xl font-bold ${styles.textColor} ${styles.customFont}`}>
+                  {schoolBranding.customHeaderText || 'EduConnect'} 🚀
+                </span>
+                <span className={`text-xs ${styles.textColor} opacity-80`}>
+                  {schoolBranding.schoolMotto || 'Smart Learning Platform'}
+                </span>
               </div>
             </Link>
           </div>
@@ -34,19 +125,20 @@ const Header: React.FC = () => {
           <nav className="hidden md:flex space-x-6">
             {/* Templates - Only for authenticated teachers and system_admins */}
             {isAuthenticated && user?.role === 'teacher' && (
-              <Link to="/templates" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📚 Templates</Link>
+              <Link to="/templates" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📚 Templates</Link>
             )}
             {isAuthenticated && (
               <>
-                <Link to={user?.role === 'finance' ? '/finance' : '/dashboard'} className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📊 Dashboard</Link>
+                <Link to={user?.role === 'finance' ? '/finance' : '/dashboard'} className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📊 Dashboard</Link>
                 
                 {/* Teacher Navigation */}
                 {user?.role === 'teacher' && (
                   <>
-                    <Link to="/materials" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📄 Materials</Link>
-                    <Link to="/students" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">👥 Students</Link>
-                    <Link to="/assignments" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📝 Assignments</Link>
-                    <Link to="/teacher/messages" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative">
+                    <Link to="/materials" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📄 Materials</Link>
+                    <Link to="/students" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>👥 Students</Link>
+                    <Link to="/assignments" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📝 Assignments</Link>
+                    <Link to="/signatures" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>✍️ Signatures</Link>
+                    <Link to="/teacher/messages" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative`}>
                       💬 Messages
                       <NotificationBadge />
                     </Link>
@@ -55,7 +147,7 @@ const Header: React.FC = () => {
                 
                 {/* Parent Navigation */}
                 {user?.role === 'parent' && (
-                  <Link to="/parent/messages" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative">
+                  <Link to="/parent/messages" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative`}>
                     💬 Messages
                     <NotificationBadge />
                   </Link>
@@ -64,28 +156,28 @@ const Header: React.FC = () => {
                 {/* School Admin Only Navigation */}
                 {user?.role === 'school_admin' && (
                   <>
-                    <Link to="/manage-teachers" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">👨‍🏫 Teachers</Link>
-                    <Link to="/school-students" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">👥 Students</Link>
-                    <Link to="/school-analytics" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📈 Analytics</Link>
-                    <Link to="/fee-management" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">💰 Fees</Link>
-                    <Link to="/school-finance" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📊 Finance</Link>
+                    <Link to="/manage-teachers" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>👨‍🏫 Teachers</Link>
+                    <Link to="/school-students" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>👥 Students</Link>
+                    <Link to="/school-analytics" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📈 Analytics</Link>
+                    <Link to="/fee-management" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>💰 Fees</Link>
+                    <Link to="/school-finance" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📊 Finance</Link>
+                    <Link to="/financial-reports" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📊 Reports</Link>
+                    <Link to="/signatures" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>✍️ Signatures</Link>
+                    <Link to="/school-settings" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>⚙️ Settings</Link>
                   </>
                 )}
 
                 {/* Finance Role Navigation */}
                 {user?.role === 'finance' && (
                   <>
-                    <Link to="/finance" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">💰 Finances</Link>
+                    <Link to="/finance" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>💰 Finances</Link>
                   </>
                 )}
                 
                 {/* System Admin Navigation */}
                 {user?.role === 'system_admin' && (
                   <>
-                    <Link to="/admin/users" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">👥 Users</Link>
-                    <Link to="/admin/schools" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">🏫 Schools</Link>
-                    <Link to="/system-analytics" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📊 Analytics</Link>
-                    <Link to="/system-settings" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">⚙️ Settings</Link>
+                    <Link to="/admin/users" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>👥 Users</Link>
                   </>
                 )}
               </>
@@ -95,19 +187,19 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-8 h-8 ${styles.buttonBg} rounded-full flex items-center justify-center`}>
+                    <span className={`text-sm font-bold ${styles.textColor}`}>
                       {user?.firstName?.[0] || 'U'}
                     </span>
                   </div>
-                  <span className="text-sm text-white font-medium">
+                  <span className={`text-sm ${styles.textColor} font-medium`}>
                     {user?.firstName} {user?.lastName}
                   </span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200"
+                  className={`${styles.buttonBg} px-4 py-2 rounded-lg text-sm font-medium ${styles.textColor} transition-all duration-200`}
                 >
                   🚪 Logout
                 </button>
@@ -116,13 +208,13 @@ const Header: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-blue-100 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+                  className={`${styles.textColor} ${styles.textHover} px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200`}
                 >
                   🔑 Login
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  className={`${styles.buttonBg} ${styles.textColor} px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200`}
                 >
                   ✨ Sign Up
                 </Link>

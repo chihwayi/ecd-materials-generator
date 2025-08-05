@@ -29,7 +29,7 @@ const DashboardPage: React.FC = () => {
       case 'delegated_admin':
         return <DelegatedAdminDashboard user={user} />;
       case 'finance':
-        return <Navigate to="/finance" />;
+        return <Navigate to="/finance" replace />;
       default:
         return <TeacherDashboard user={user} />;
     }

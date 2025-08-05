@@ -7,19 +7,11 @@ const FeePayment = sequelize.define('FeePayment', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
-  studentId: {
+  studentFeeId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'Student',
-      key: 'id'
-    }
-  },
-  feeStructureId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'FeeStructure',
+      model: 'StudentFee',
       key: 'id'
     }
   },

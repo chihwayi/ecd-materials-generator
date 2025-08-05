@@ -389,7 +389,7 @@ const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({ user }) => 
               {logs.slice(0, 5).map((log) => (
                 <div key={log.id} className="flex items-center space-x-3">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getLogLevelColor(log.level)}`}>
-                    {log.level.toUpperCase()}
+                    {log.level?.toUpperCase() || 'INFO'}
                   </span>
                   <span className="text-sm text-gray-900 flex-1">{log.message}</span>
                   <span className="text-xs text-gray-500">

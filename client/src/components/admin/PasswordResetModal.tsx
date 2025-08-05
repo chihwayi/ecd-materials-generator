@@ -90,7 +90,7 @@ const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
               <strong>Email:</strong> {selectedUser.email}
             </p>
             <p className="text-sm text-gray-600">
-              <strong>Role:</strong> {selectedUser.role.replace('_', ' ').toUpperCase()}
+                              <strong>Role:</strong> {selectedUser.role?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}
             </p>
           </div>
         )}

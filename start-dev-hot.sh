@@ -16,9 +16,15 @@ done
 echo "🛑 Stopping existing services..."
 docker-compose -f docker-compose.dev.yml down 2>/dev/null
 
-# Start development services
+# Check if containers need to be built (first time or after changes)
+if [ ! "$(docker images -q ecd-materials-generator_frontend-dev 2> /dev/null)" ] || [ ! "$(docker images -q ecd-materials-generator_backend-dev 2> /dev/null)" ]; then
+    echo "🔨 Building containers for the first time..."
+    docker-compose -f docker-compose.dev.yml build
+fi
+
+# Start development services (without rebuilding)
 echo "🚀 Starting development services with hot reloading..."
-docker-compose -f docker-compose.dev.yml up --build -d
+docker-compose -f docker-compose.dev.yml up -d
 
 echo "✅ Development services starting..."
 echo "📊 Main ECD Platform: http://localhost:3000 (with hot reloading)"
@@ -27,7 +33,7 @@ echo "🗄️  Database: localhost:5432"
 
 # Wait for services to be ready
 echo "⏳ Waiting for services to be ready..."
-sleep 15
+sleep 10
 
 # Check service health
 echo "🔍 Checking service health..."
@@ -36,4 +42,5 @@ docker-compose -f docker-compose.dev.yml ps
 echo ""
 echo "🎉 Development environment is ready!"
 echo "💡 Your code changes will automatically reload in the browser!"
-echo "📝 To view logs: docker-compose -f docker-compose.dev.yml logs -f" 
+echo "📝 To view logs: docker-compose -f docker-compose.dev.yml logs -f"
+echo "🔧 To rebuild containers: docker-compose -f docker-compose.dev.yml build" 

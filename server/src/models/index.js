@@ -11,6 +11,8 @@ const Message = require('./Message');
 const FeeStructure = require('./FeeStructure');
 const StudentFee = require('./StudentFee');
 const FeePayment = require('./FeePayment');
+const Signature = require('./Signature');
+const FinancialReport = require('./FinancialReport');
 
 // Define associations
 User.belongsTo(School, { foreignKey: 'schoolId' });
@@ -84,6 +86,18 @@ FeePayment.belongsTo(User, { foreignKey: 'recordedBy', as: 'recordedByUser' });
 StudentFee.hasMany(FeePayment, { foreignKey: 'studentFeeId', as: 'payments' });
 User.hasMany(FeePayment, { foreignKey: 'recordedBy', as: 'recordedPayments' });
 
+// Signature associations
+Signature.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Signature.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+User.hasMany(Signature, { foreignKey: 'userId', as: 'signatures' });
+School.hasMany(Signature, { foreignKey: 'schoolId', as: 'signatures' });
+
+// Financial Report associations
+FinancialReport.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+FinancialReport.belongsTo(User, { foreignKey: 'generatedBy', as: 'generatedByUser' });
+School.hasMany(FinancialReport, { foreignKey: 'schoolId', as: 'financialReports' });
+User.hasMany(FinancialReport, { foreignKey: 'generatedBy', as: 'generatedReports' });
+
 module.exports = {
   User,
   School,
@@ -97,5 +111,7 @@ module.exports = {
   Message,
   FeeStructure,
   StudentFee,
-  FeePayment
+  FeePayment,
+  Signature,
+  FinancialReport
 };

@@ -19,6 +19,8 @@ const studentsRoutes = require('./routes/students');
 const communicationRoutes = require('./routes/communication');
 const feeRoutes = require('./routes/fees');
 const financeRoutes = require('./routes/finance');
+const signatureRoutes = require('./routes/signatures.routes');
+const financialReportsRoutes = require('./routes/financialReports.routes');
 
 // Import middleware
 const { authMiddleware } = require('./middleware/auth.middleware');
@@ -75,6 +77,66 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Compression middleware
 app.use(compression());
 
+// Static file serving for uploads
+const path = require('path');
+const fs = require('fs');
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+const brandingDir = path.join(uploadsDir, 'branding');
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+if (!fs.existsSync(brandingDir)) {
+  fs.mkdirSync(brandingDir, { recursive: true });
+}
+
+console.log('Uploads directory:', uploadsDir);
+console.log('Branding directory:', brandingDir);
+console.log('Uploads exists:', fs.existsSync(uploadsDir));
+console.log('Branding exists:', fs.existsSync(brandingDir));
+
+// Static file serving for uploads
+
+// Custom middleware to set CORS headers for static file responses (especially images)
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  // Allow images to be loaded cross-origin
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+app.use('/uploads', express.static(uploadsDir));
+
+// Image serving endpoint
+app.get('/api/v1/images/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(uploadsDir, 'branding', filename);
+  
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).json({ error: 'Image not found' });
+  }
+});
+
+// Test endpoint to verify uploads directory
+app.get('/api/v1/test-uploads', (req, res) => {
+  res.json({
+    uploadsDir: uploadsDir,
+    brandingDir: brandingDir,
+    uploadsExists: fs.existsSync(uploadsDir),
+    brandingExists: fs.existsSync(brandingDir),
+    brandingFiles: fs.existsSync(brandingDir) ? fs.readdirSync(brandingDir) : []
+  });
+});
+
 // Logging middleware
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 
@@ -109,6 +171,8 @@ app.use('/api/v1/marketplace', require('./routes/marketplace'));
 app.use('/api/v1/communication', communicationRoutes);
 app.use('/api/v1/fees', feeRoutes);
 app.use('/api/v1/finance', financeRoutes);
+app.use('/api/v1/signatures', signatureRoutes);
+app.use('/api/v1/financial-reports', financialReportsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

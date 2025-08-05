@@ -177,13 +177,22 @@ router.get('/schools/analytics', authenticateToken, async (req, res) => {
       }]
     });
 
-    const analytics = schools.map(school => ({
-      id: school.id,
-      name: school.name,
-      userCount: school.Users?.length || 0,
-      teacherCount: school.Users?.filter(u => u.role === 'teacher').length || 0,
-      adminCount: school.Users?.filter(u => u.role === 'school_admin').length || 0
-    }));
+    const analytics = schools.map(school => {
+      const users = school.Users || [];
+      const activeUsers = users.filter(u => u.isActive !== false).length;
+      const totalUsers = users.length;
+      const utilizationRate = totalUsers > 0 ? (activeUsers / totalUsers) * 100 : 0;
+      
+      return {
+        id: school.id,
+        name: school.name,
+        activeUsers: activeUsers,
+        totalUsers: totalUsers,
+        utilizationRate: utilizationRate,
+        subscriptionPlan: school.subscriptionPlan || 'free',
+        isActive: school.isActive !== false
+      };
+    });
 
     res.json(analytics);
   } catch (error) {

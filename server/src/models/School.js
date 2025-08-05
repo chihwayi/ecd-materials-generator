@@ -40,6 +40,62 @@ const School = sequelize.define('School', {
   defaultParentPassword: {
     type: DataTypes.STRING,
     defaultValue: 'parent123'
+  },
+  // Branding and Customization Fields
+  logoUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  primaryColor: {
+    type: DataTypes.STRING,
+    defaultValue: '#2563eb', // Default blue
+    validate: {
+      is: /^#[0-9A-F]{6}$/i // Hex color validation
+    }
+  },
+  secondaryColor: {
+    type: DataTypes.STRING,
+    defaultValue: '#1d4ed8', // Default darker blue
+    validate: {
+      is: /^#[0-9A-F]{6}$/i
+    }
+  },
+  accentColor: {
+    type: DataTypes.STRING,
+    defaultValue: '#fbbf24', // Default gold
+    validate: {
+      is: /^#[0-9A-F]{6}$/i
+    }
+  },
+  customFont: {
+    type: DataTypes.STRING,
+    defaultValue: 'Inter',
+    allowNull: true
+  },
+  customDomain: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  },
+  brandingEnabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  customCss: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  faviconUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  schoolMotto: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  customHeaderText: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 });
 

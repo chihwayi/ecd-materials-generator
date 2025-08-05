@@ -257,7 +257,7 @@ const UserManagementPage: React.FC = () => {
           role === 'teacher' ? 'bg-green-100 text-green-800' :
           'bg-gray-100 text-gray-800'
         }`}>
-          {role.replace('_', ' ').toUpperCase()}
+          {role?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}
         </span>
       )
     },
@@ -277,7 +277,7 @@ const UserManagementPage: React.FC = () => {
           plan === 'teacher' ? 'bg-green-100 text-green-800' :
           'bg-gray-100 text-gray-800'
         }`}>
-          {plan.toUpperCase()}
+          {plan?.toUpperCase() || 'FREE'}
         </span>
       )
     },
