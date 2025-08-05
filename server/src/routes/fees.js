@@ -120,35 +120,58 @@ router.delete('/structures/:id', authenticateToken, requireRole(['school_admin']
 // Get all payments
 router.get('/payments', authenticateToken, requireRole(['school_admin', 'finance']), async (req, res) => {
   try {
-    // For now, return mock payments to avoid association issues
-    // TODO: Replace with actual database query when associations are properly set up
-    const mockPayments = [
+    const { studentId, startDate, endDate, paymentMethod, status } = req.query;
+    
+    let whereClause = { schoolId: req.user.schoolId };
+    let includeClause = [
       {
-        id: 'mock-payment-1',
-        studentId: '603dcc92-049c-4c6e-99c0-7e24803e96c5',
-        feeStructureId: '67e20378-d635-40ea-91b5-75043afca310',
-        amount: 100,
-        paymentMethod: 'cash',
-        paymentDate: new Date('2025-08-04'),
-        academicYear: '2025',
-        recordedBy: req.user.id,
-        schoolId: req.user.schoolId,
-        student: {
-          firstName: 'Kayla',
-          lastName: 'Mutemachani'
-        },
-        feeStructure: {
-          name: 'Term Fees',
-          type: 'term'
-        },
-        recordedByUser: {
-          firstName: 'Finance',
-          lastName: 'Manager'
-        }
+        model: StudentFee,
+        as: 'studentFee',
+        include: [
+          {
+            model: Student,
+            as: 'student',
+            attributes: ['id', 'firstName', 'lastName']
+          },
+          {
+            model: FeeStructure,
+            as: 'feeStructure',
+            attributes: ['name', 'type']
+          }
+        ]
+      },
+      {
+        model: User,
+        as: 'recordedByUser',
+        attributes: ['firstName', 'lastName']
       }
     ];
 
-    res.json(mockPayments);
+    if (studentId) {
+      includeClause[0].where = { studentId };
+    }
+
+    if (startDate && endDate) {
+      whereClause.paymentDate = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    }
+
+    if (paymentMethod) {
+      whereClause.paymentMethod = paymentMethod;
+    }
+
+    if (status) {
+      includeClause[0].where = { ...includeClause[0].where, status };
+    }
+
+    const payments = await FeePayment.findAll({
+      where: whereClause,
+      include: includeClause,
+      order: [['paymentDate', 'DESC']]
+    });
+
+    res.json(payments);
   } catch (error) {
     console.error('Error fetching payments:', error);
     res.status(500).json({ error: 'Failed to fetch payments' });
@@ -158,7 +181,7 @@ router.get('/payments', authenticateToken, requireRole(['school_admin', 'finance
 // Record a new payment
 router.post('/payments', authenticateToken, requireRole(['school_admin', 'finance']), async (req, res) => {
   try {
-    const { studentId, feeStructureId, amount, paymentMethod, paymentDate, academicYear } = req.body;
+    const { studentId, feeStructureId, amount, paymentMethod, paymentDate, academicYear, receiptNumber, notes } = req.body;
 
     // Validate required fields
     if (!studentId || !feeStructureId || !amount || !paymentMethod || !paymentDate) {
@@ -189,25 +212,86 @@ router.post('/payments', authenticateToken, requireRole(['school_admin', 'financ
       return res.status(404).json({ error: 'Fee structure not found' });
     }
 
-    // For now, just return success without creating database record
-    // TODO: Add FeePayment table migration and create actual payment record
-    const mockPayment = {
-      id: 'mock-payment-id',
-      studentId,
-      feeStructureId,
-      amount,
+    // First, find or create a StudentFee record
+    let studentFee = await StudentFee.findOne({
+      where: {
+        studentId,
+        feeStructureId,
+        schoolId: req.user.schoolId
+      }
+    });
+
+    if (!studentFee) {
+      // Create a new StudentFee record
+      studentFee = await StudentFee.create({
+        studentId,
+        feeStructureId,
+        schoolId: req.user.schoolId,
+        amount: parseFloat(amount),
+        paidAmount: 0,
+        status: 'not_paid',
+        academicYear: academicYear || new Date().getFullYear().toString(),
+        paymentType: feeStructure.frequency === 'monthly' ? 'monthly' : 'term'
+      });
+    }
+
+    // Create the payment record
+    const payment = await FeePayment.create({
+      studentFeeId: studentFee.id,
+      amount: parseFloat(amount),
       paymentMethod,
       paymentDate: new Date(paymentDate),
       academicYear: academicYear || new Date().getFullYear().toString(),
+      receiptNumber,
+      notes,
       recordedBy: req.user.id,
-      schoolId: req.user.schoolId,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+      schoolId: req.user.schoolId
+    });
+
+    // Update the StudentFee record with the new paid amount
+    const newPaidAmount = parseFloat(studentFee.paidAmount) + parseFloat(amount);
+    const newStatus = newPaidAmount >= parseFloat(studentFee.amount) ? 'fully_paid' : 
+                     newPaidAmount > 0 ? 'partially_paid' : 'not_paid';
+    
+    await studentFee.update({
+      paidAmount: newPaidAmount,
+      status: newStatus
+    });
+
+    // Automatically create receipt for the payment
+    try {
+      const { Receipt } = require('../models');
+      const generateReceiptNumber = require('../controllers/receipts.controller').generateReceiptNumber;
+      
+      const receiptNumber = await generateReceiptNumber(req.user.schoolId);
+      
+      await Receipt.create({
+        receiptNumber,
+        paymentId: payment.id,
+        schoolId: req.user.schoolId,
+        studentId: studentId,
+        amount: parseFloat(amount),
+        paymentMethod: paymentMethod,
+        paymentDate: new Date(paymentDate),
+        academicYear: academicYear || new Date().getFullYear().toString(),
+        term: null,
+        month: null,
+        feeStructureName: feeStructure.name,
+        studentName: `${student.firstName} ${student.lastName}`,
+        parentName: null,
+        className: null,
+        recordedBy: req.user.id,
+        recordedByName: `${req.user.firstName} ${req.user.lastName}`,
+        notes: notes
+      });
+    } catch (receiptError) {
+      console.error('Error creating receipt:', receiptError);
+      // Don't fail the payment if receipt creation fails
+    }
 
     res.status(201).json({
       message: 'Payment recorded successfully',
-      payment: mockPayment
+      payment
     });
   } catch (error) {
     console.error('Error recording payment:', error);

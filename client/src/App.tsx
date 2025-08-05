@@ -18,8 +18,8 @@ import ParentMessagesPage from './pages/ParentMessagesPage.tsx';
 import SchoolAdminFeeManagementPage from './pages/SchoolAdminFeeManagementPage.tsx';
 import FinanceDashboardPage from './pages/FinanceDashboardPage.tsx';
 import SchoolAdminFinancePage from './pages/SchoolAdminFinancePage.tsx';
-import SystemUsersPage from './pages/SystemUsersPage';
-import ManageTeachersPage from './pages/ManageTeachersPage';
+import SystemUsersPage from './pages/SystemUsersPage.tsx';
+import ManageTeachersPage from './pages/ManageTeachersPage.js';
 import SchoolStudentsPage from './pages/SchoolStudentsPage';
 import SchoolAnalyticsPage from './pages/SchoolAnalyticsPage';
 import ManageClassesPage from './pages/ManageClassesPage';
@@ -38,10 +38,14 @@ import ContactTeacherPage from './pages/ContactTeacherPage.tsx';
 import SchoolSettingsPage from './pages/SchoolSettingsPage';
 import SignatureManagementPage from './pages/SignatureManagementPage.tsx';
 import FinancialReportsPage from './pages/FinancialReportsPage.tsx';
+import ReceiptsManagementPage from './pages/ReceiptsManagementPage.tsx';
 import UserManagementPage from './pages/admin/UserManagementPage.tsx';
 import SchoolManagementPage from './pages/admin/SchoolManagementPage.tsx';
 import SystemAnalyticsPage from './pages/admin/SystemAnalyticsPage.tsx';
 import SystemSettingsPage from './pages/admin/SystemSettingsPage.tsx';
+import SubscriptionPricingPage from './pages/SubscriptionPricingPage.tsx';
+import SubscriptionManagementPage from './pages/SubscriptionManagementPage.tsx';
+import SubscriptionMonitoringPage from './pages/admin/SubscriptionMonitoringPage.tsx';
 import { useSelector } from 'react-redux';
 import RoleProtectedRoute from './components/auth/RoleProtectedRoute.tsx';
 import { RootState } from './store';
@@ -252,11 +256,35 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
+            path="/admin/subscriptions"
+            element={
+              <RoleProtectedRoute allowedRoles={['system_admin']}>
+                <SubscriptionMonitoringPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
             path="/system-settings"
             element={
               <RoleProtectedRoute allowedRoles={['system_admin']}>
                 <SystemSettingsPage />
               </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscription/pricing"
+            element={
+              <ProtectedRoute>
+                <SubscriptionPricingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscription/manage"
+            element={
+              <ProtectedRoute>
+                <SubscriptionManagementPage />
+              </ProtectedRoute>
             }
           />
           <Route
@@ -435,6 +463,14 @@ const AppContent: React.FC = () => {
             element={
               <RoleProtectedRoute allowedRoles={['school_admin']}>
                 <FinancialReportsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/receipts"
+            element={
+              <RoleProtectedRoute allowedRoles={['finance']}>
+                <ReceiptsManagementPage />
               </RoleProtectedRoute>
             }
           />

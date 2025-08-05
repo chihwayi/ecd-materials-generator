@@ -177,15 +177,21 @@ export const adminService = {
   // Get system statistics for dashboard
   getSystemStats: async (): Promise<any> => {
     try {
-      const response = await api.get('/admin/system/stats');
+      const response = await api.get('/analytics/system/stats');
       return response.data;
     } catch (error) {
       console.warn('System stats API unavailable, using fallback data');
       return {
         totalUsers: 12,
+        activeUsers: 10,
+        totalSchools: 3,
         activeSchools: 3,
         totalMaterials: 45,
+        totalTemplates: 15,
+        totalAssignments: 25,
         systemHealth: 98,
+        usersByRole: { teacher: 5, school_admin: 3, parent: 4, system_admin: 1 },
+        usersBySubscription: { free: 8, teacher: 2, school: 2, premium: 0 },
         recentActivity: []
       };
     }
@@ -194,7 +200,7 @@ export const adminService = {
   // Get system performance for dashboard
   getSystemPerformance: async (): Promise<any> => {
     try {
-      const response = await api.get('/admin/system/performance');
+      const response = await api.get('/analytics/system/performance');
       return response.data;
     } catch (error) {
       console.warn('System performance API unavailable, using fallback data');
@@ -209,7 +215,7 @@ export const adminService = {
   // Get system logs for dashboard
   getSystemLogs: async (level: string = 'all', limit: number = 50): Promise<any> => {
     try {
-      const response = await api.get(`/admin/system/logs?level=${level}&limit=${limit}`);
+      const response = await api.get(`/analytics/system/logs?level=${level}&limit=${limit}`);
       return response.data;
     } catch (error) {
       console.warn('System logs API unavailable, using fallback data');
@@ -226,7 +232,7 @@ export const adminService = {
   // Get activity logs for dashboard
   getActivityLogs: async (page: number = 1, limit: number = 20): Promise<any> => {
     try {
-      const response = await api.get(`/admin/activity/logs?page=${page}&limit=${limit}`);
+      const response = await api.get(`/analytics/activity/logs?page=${page}&limit=${limit}`);
       return response.data;
     } catch (error) {
       console.warn('Activity logs API unavailable, using fallback data');
@@ -243,7 +249,7 @@ export const adminService = {
   // Get system health for dashboard
   getSystemHealth: async (): Promise<any> => {
     try {
-      const response = await api.get('/admin/system/health');
+      const response = await api.get('/analytics/system/health');
       return response.data;
     } catch (error) {
       console.warn('System health API unavailable, using fallback data');
@@ -276,6 +282,104 @@ export const adminService = {
   // Export data
   exportData: async (type: string): Promise<void> => {
     await api.get(`/admin/system/export/${type}`);
+  },
+
+  // User Management Methods
+  getAllUsers: async (page: number = 1, limit: number = 20, filters: any = {}): Promise<any> => {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page.toString());
+      queryParams.append('limit', limit.toString());
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          queryParams.append(key, value.toString());
+        }
+      });
+
+      const response = await api.get(`/admin/users?${queryParams.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.warn('Get all users API unavailable, using fallback data');
+      return {
+        data: [],
+        pagination: { total: 0, page: page, limit: limit }
+      };
+    }
+  },
+
+  getAllSchools: async (page: number = 1, limit: number = 100): Promise<any> => {
+    try {
+      const response = await api.get(`/admin/schools?page=${page}&limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      console.warn('Get all schools API unavailable, using fallback data');
+      return {
+        data: [],
+        pagination: { total: 0, page: page, limit: limit }
+      };
+    }
+  },
+
+  createUser: async (userData: any): Promise<any> => {
+    try {
+      const response = await api.post('/admin/users', userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateUser: async (userId: string, userData: any): Promise<any> => {
+    try {
+      const response = await api.put(`/admin/users/${userId}`, userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteUser: async (userId: string): Promise<void> => {
+    try {
+      await api.delete(`/admin/users/${userId}`);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  bulkDeleteUsers: async (userIds: string[]): Promise<void> => {
+    try {
+      await api.delete('/admin/users/bulk', { data: { userIds } });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  bulkUpdateUsers: async (userIds: string[], updateData: any): Promise<void> => {
+    try {
+      await api.put('/admin/users/bulk', { userIds, updateData });
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  exportUsers: async (format: string = 'csv'): Promise<Blob> => {
+    try {
+      const response = await api.get(`/admin/users/export?format=${format}`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  toggleUserStatus: async (userId: string): Promise<void> => {
+    try {
+      await api.put(`/admin/users/${userId}/toggle-status`);
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
@@ -295,6 +399,18 @@ export const adminUtils = {
     if (health >= 90) return 'text-green-600';
     if (health >= 70) return 'text-yellow-600';
     return 'text-red-600';
+  },
+
+  // Download file utility
+  downloadFile: (blob: Blob, filename: string): void => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 };
 

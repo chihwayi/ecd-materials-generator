@@ -86,8 +86,9 @@ const Header: React.FC = () => {
   return (
     <header className={`${styles.headerBg} shadow-lg`} style={styles.inlineStyle}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
+        <div className="flex items-center h-16">
+          {/* Left Section - Logo and School Details */}
+          <div className="flex items-center flex-shrink-0">
             <Link to="/" className="flex items-center space-x-3 group">
               <div className={`w-10 h-10 ${styles.logoBg} rounded-xl flex items-center justify-center transition-all duration-200 overflow-hidden`}>
                 {schoolBranding.logoUrl ? (
@@ -122,23 +123,24 @@ const Header: React.FC = () => {
             </Link>
           </div>
 
-          <nav className="hidden md:flex space-x-6">
+          {/* Center Section - Navigation Links */}
+          <nav className="hidden md:flex items-center space-x-4 px-4 mx-auto">
             {/* Templates - Only for authenticated teachers and system_admins */}
             {isAuthenticated && user?.role === 'teacher' && (
-              <Link to="/templates" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📚 Templates</Link>
+              <Link to="/templates" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>📚 Templates</Link>
             )}
             {isAuthenticated && (
               <>
-                <Link to={user?.role === 'finance' ? '/finance' : '/dashboard'} className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📊 Dashboard</Link>
+                <Link to={user?.role === 'finance' ? '/finance' : '/dashboard'} className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>📊 Dashboard</Link>
                 
                 {/* Teacher Navigation */}
                 {user?.role === 'teacher' && (
                   <>
-                    <Link to="/materials" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📄 Materials</Link>
-                    <Link to="/students" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>👥 Students</Link>
-                    <Link to="/assignments" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📝 Assignments</Link>
-                    <Link to="/signatures" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>✍️ Signatures</Link>
-                    <Link to="/teacher/messages" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative`}>
+                    <Link to="/materials" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>📄 Materials</Link>
+                    <Link to="/students" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>👥 Students</Link>
+                    <Link to="/assignments" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>📝 Assignments</Link>
+                    <Link to="/signatures" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>✍️ Signatures</Link>
+                    <Link to="/teacher/messages" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative whitespace-nowrap`}>
                       💬 Messages
                       <NotificationBadge />
                     </Link>
@@ -147,7 +149,7 @@ const Header: React.FC = () => {
                 
                 {/* Parent Navigation */}
                 {user?.role === 'parent' && (
-                  <Link to="/parent/messages" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative`}>
+                  <Link to="/parent/messages" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative whitespace-nowrap`}>
                     💬 Messages
                     <NotificationBadge />
                   </Link>
@@ -156,35 +158,38 @@ const Header: React.FC = () => {
                 {/* School Admin Only Navigation */}
                 {user?.role === 'school_admin' && (
                   <>
-                    <Link to="/manage-teachers" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>👨‍🏫 Teachers</Link>
-                    <Link to="/school-students" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>👥 Students</Link>
-                    <Link to="/school-analytics" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📈 Analytics</Link>
-                    <Link to="/fee-management" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>💰 Fees</Link>
-                    <Link to="/school-finance" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📊 Finance</Link>
-                    <Link to="/financial-reports" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>📊 Reports</Link>
-                    <Link to="/signatures" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>✍️ Signatures</Link>
-                    <Link to="/school-settings" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>⚙️ Settings</Link>
+                    <Link to="/manage-teachers" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>👨‍🏫 Teachers</Link>
+                    <Link to="/school-students" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>👥 Students</Link>
+                    <Link to="/school-analytics" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>📈 Analytics</Link>
+                    <Link to="/fee-management" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>💰 Fees</Link>
+                    <Link to="/school-finance" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>📊 Finance</Link>
+                    <Link to="/financial-reports" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>📊 Reports</Link>
+                    <Link to="/signatures" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>✍️ Signatures</Link>
+                    <Link to="/receipts" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>🖨️ Receipts</Link>
+                    <Link to="/school-settings" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>⚙️ Settings</Link>
                   </>
                 )}
 
                 {/* Finance Role Navigation */}
                 {user?.role === 'finance' && (
                   <>
-                    <Link to="/finance" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>💰 Finances</Link>
+                    <Link to="/finance" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>💰 Finances</Link>
+                    <Link to="/receipts" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>🖨️ Receipts</Link>
                   </>
                 )}
                 
                 {/* System Admin Navigation */}
                 {user?.role === 'system_admin' && (
                   <>
-                    <Link to="/admin/users" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}>👥 Users</Link>
+                    <Link to="/admin/users" className={`${styles.textColor} ${styles.textHover} px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 whitespace-nowrap`}>👥 Users</Link>
                   </>
                 )}
               </>
             )}
           </nav>
 
-          <div className="flex items-center space-x-4">
+          {/* Right Section - User Info and Logout */}
+          <div className="flex items-center space-x-4 flex-shrink-0">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-3">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import Modal from '../../components/admin/Modal.tsx';
-import { adminService, analyticsService } from '../../services/admin.service';
+import { adminService, analyticsService } from '../../services/admin.service.ts';
 
 const SystemSettingsPage: React.FC = () => {
   const [performance, setPerformance] = useState<any>(null);

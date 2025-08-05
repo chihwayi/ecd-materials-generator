@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { adminService, adminUtils } from '../../services/admin.service';
+import { adminService, adminUtils } from '../../services/admin.service.ts';
 
 interface SystemStats {
   totalUsers: number;

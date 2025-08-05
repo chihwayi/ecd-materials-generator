@@ -2,10 +2,10 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 import { RootState } from '../store';
-import TeacherDashboard from '../components/dashboard/TeacherDashboard';
+import TeacherDashboard from '../components/dashboard/TeacherDashboard.tsx';
 import SchoolAdminDashboard from '../components/dashboard/SchoolAdminDashboard';
-import SystemAdminDashboard from '../components/dashboard/SystemAdminDashboard';
-import DelegatedAdminDashboard from '../components/dashboard/DelegatedAdminDashboard';
+import SystemAdminDashboard from '../components/dashboard/SystemAdminDashboard.tsx';
+import DelegatedAdminDashboard from '../components/dashboard/DelegatedAdminDashboard.tsx';
 
 import ParentDashboard from '../components/dashboard/ParentDashboard.tsx';
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { analyticsService } from '../../services/admin.service';
+import { analyticsService } from '../../services/admin.service.ts';
 import { SystemStats } from '../../types/user.types';
 
 const SystemAnalyticsPage: React.FC = () => {

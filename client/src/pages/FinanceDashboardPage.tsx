@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import { toast } from 'react-hot-toast';
 import { RootState } from '../store';
 import api from '../services/api';
+import studentServicePreferencesService from '../services/studentServicePreferences.service.ts';
 
 interface Student {
   id: string;
@@ -76,6 +78,8 @@ const FinanceDashboardPage: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
   const [studentPayments, setStudentPayments] = useState<FeePayment[]>([]);
+  const [allPayments, setAllPayments] = useState<FeePayment[]>([]);
+  const [studentFees, setStudentFees] = useState<StudentFee[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedFeeStructure, setSelectedFeeStructure] = useState<FeeStructure | null>(null);
   const [showServicePreferencesModal, setShowServicePreferencesModal] = useState(false);
@@ -109,7 +113,39 @@ const FinanceDashboardPage: React.FC = () => {
   useEffect(() => {
     fetchStudents();
     fetchFeeStructures();
+    fetchAllPayments();
+    loadStudentServicePreferences();
   }, []);
+
+  const fetchAllPayments = async () => {
+    try {
+      const response = await api.get('/fees/payments');
+      setAllPayments(response.data);
+    } catch (error) {
+      console.error('Error fetching all payments:', error);
+    }
+  };
+
+  const loadStudentServicePreferences = async () => {
+    try {
+      const allPreferences = await studentServicePreferencesService.getAllStudentPreferences();
+      const preferencesMap: Record<string, any> = {};
+      
+      allPreferences.forEach(pref => {
+        preferencesMap[pref.studentId] = {
+          tuitionType: pref.tuitionType,
+          transport: pref.transport,
+          food: pref.food,
+          activities: pref.activities,
+          auxiliary: pref.auxiliary
+        };
+      });
+      
+      setStudentServices(preferencesMap);
+    } catch (error) {
+      console.error('Error loading student service preferences:', error);
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -152,9 +188,15 @@ const FinanceDashboardPage: React.FC = () => {
   const fetchStudentFees = async (studentId: string) => {
     try {
       console.log('Fetching fees for student:', studentId);
+      
+      // Clear previous student data first
+      setStudentPayments([]);
+      setStudentFees([]);
+      
       const response = await api.get(`/finance/students/${studentId}/fees`);
       console.log('Student fees response:', response.data);
       setSelectedStudent(response.data.student);
+      setStudentFees(response.data.fees || []);
       
       // Also fetch all payments for this student
       const paymentsResponse = await api.get('/fees/payments');
@@ -162,8 +204,9 @@ const FinanceDashboardPage: React.FC = () => {
       
       // Filter payments for this specific student
       const studentPayments = paymentsResponse.data.filter((payment: any) => 
-        payment.studentId === studentId
+        payment.studentFee?.student?.id === studentId
       );
+      console.log('Filtered payments for student:', studentPayments);
       setStudentPayments(studentPayments);
     } catch (error) {
       console.error('Error fetching student fees:', error);
@@ -172,6 +215,7 @@ const FinanceDashboardPage: React.FC = () => {
       }
       // Set empty state to prevent errors
       setStudentPayments([]);
+      setStudentFees([]);
     }
   };
 
@@ -450,7 +494,14 @@ const FinanceDashboardPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Payments</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  ${studentPayments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString()}
+                  ${(() => {
+                    // Calculate total payments across all students
+                    const total = allPayments.reduce((sum, payment) => {
+                      const amount = parseFloat(payment.amount) || 0;
+                      return sum + amount;
+                    }, 0);
+                    return total.toLocaleString();
+                  })()}
                 </p>
               </div>
             </div>
@@ -645,7 +696,42 @@ const FinanceDashboardPage: React.FC = () => {
                     <p className="text-sm text-blue-600 font-medium">Student's Total Fees</p>
                     <p className="text-2xl font-bold text-blue-900">
                       ${(() => {
-                        const { totalFees } = calculateStudentFees(selectedStudent.id);
+                        // Calculate total fees based on student's actual service preferences
+                        const studentPrefs = studentServices[selectedStudent.id] || {
+                          tuitionType: null,
+                          transport: false,
+                          food: false,
+                          activities: false,
+                          auxiliary: false
+                        };
+
+                        let totalFees = 0;
+
+                        // Add tuition based on student's choice
+                        if (studentPrefs.tuitionType) {
+                          const tuitionFee = feeStructures.find(fee => fee.type === studentPrefs.tuitionType);
+                          if (tuitionFee) {
+                            if (studentPrefs.tuitionType === 'monthly') {
+                              totalFees += parseFloat(tuitionFee.amount) * 3; // Multiply by 3 months
+                            } else {
+                              totalFees += parseFloat(tuitionFee.amount);
+                            }
+                          }
+                        }
+
+                        // Add optional services based on student's preferences
+                        feeStructures.forEach(fee => {
+                          if (fee.type === 'transport' && studentPrefs.transport) {
+                            totalFees += parseFloat(fee.amount);
+                          } else if (fee.type === 'food' && studentPrefs.food) {
+                            totalFees += parseFloat(fee.amount);
+                          } else if (fee.type === 'activities' && studentPrefs.activities) {
+                            totalFees += parseFloat(fee.amount);
+                          } else if (fee.type === 'auxiliary' && studentPrefs.auxiliary) {
+                            totalFees += parseFloat(fee.amount);
+                          }
+                        });
+
                         return totalFees.toFixed(2);
                       })()}
                     </p>
@@ -653,15 +739,59 @@ const FinanceDashboardPage: React.FC = () => {
                   <div className="bg-green-50 p-4 rounded-lg">
                     <p className="text-sm text-green-600 font-medium">Total Paid</p>
                     <p className="text-2xl font-bold text-green-900">
-                      ${studentPayments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString()}
+                      ${(() => {
+                        const total = studentPayments.reduce((sum, payment) => {
+                          const amount = parseFloat(payment.amount) || 0;
+                          return sum + amount;
+                        }, 0);
+                        return total.toLocaleString();
+                      })()}
                     </p>
                   </div>
                   <div className="bg-purple-50 p-4 rounded-lg">
                     <p className="text-sm text-purple-600 font-medium">Balance Due</p>
                     <p className="text-2xl font-bold text-purple-900">
                       ${(() => {
-                        const { totalFees } = calculateStudentFees(selectedStudent.id);
-                        const totalPaid = studentPayments.reduce((sum, payment) => sum + payment.amount, 0);
+                        // Calculate total fees based on student's actual service preferences
+                        const studentPrefs = studentServices[selectedStudent.id] || {
+                          tuitionType: null,
+                          transport: false,
+                          food: false,
+                          activities: false,
+                          auxiliary: false
+                        };
+
+                        let totalFees = 0;
+
+                        // Add tuition based on student's choice
+                        if (studentPrefs.tuitionType) {
+                          const tuitionFee = feeStructures.find(fee => fee.type === studentPrefs.tuitionType);
+                          if (tuitionFee) {
+                            if (studentPrefs.tuitionType === 'monthly') {
+                              totalFees += parseFloat(tuitionFee.amount) * 3; // Multiply by 3 months
+                            } else {
+                              totalFees += parseFloat(tuitionFee.amount);
+                            }
+                          }
+                        }
+
+                        // Add optional services based on student's preferences
+                        feeStructures.forEach(fee => {
+                          if (fee.type === 'transport' && studentPrefs.transport) {
+                            totalFees += parseFloat(fee.amount);
+                          } else if (fee.type === 'food' && studentPrefs.food) {
+                            totalFees += parseFloat(fee.amount);
+                          } else if (fee.type === 'activities' && studentPrefs.activities) {
+                            totalFees += parseFloat(fee.amount);
+                          } else if (fee.type === 'auxiliary' && studentPrefs.auxiliary) {
+                            totalFees += parseFloat(fee.amount);
+                          }
+                        });
+
+                        const totalPaid = studentPayments.reduce((sum, payment) => {
+                          const amount = parseFloat(payment.amount) || 0;
+                          return sum + amount;
+                        }, 0);
                         return Math.max(0, totalFees - totalPaid).toFixed(2);
                       })()}
                     </p>
@@ -1145,14 +1275,42 @@ const FinanceDashboardPage: React.FC = () => {
 
               <div className="flex gap-4 mt-6">
                 <button
-                  onClick={() => setShowServicePreferencesModal(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400 transition-all duration-200"
+                  onClick={async () => {
+                    try {
+                      const currentPreferences = studentServices[selectedStudentForServices.id] || {
+                        tuitionType: null,
+                        transport: false,
+                        food: false,
+                        activities: false,
+                        auxiliary: false
+                      };
+
+                      await studentServicePreferencesService.saveStudentPreferences(
+                        selectedStudentForServices.id,
+                        {
+                          tuitionType: currentPreferences.tuitionType,
+                          transport: currentPreferences.transport,
+                          food: currentPreferences.food,
+                          activities: currentPreferences.activities,
+                          auxiliary: currentPreferences.auxiliary,
+                          academicYear: new Date().getFullYear().toString()
+                        }
+                      );
+
+                      toast.success('Service preferences saved successfully!');
+                      setShowServicePreferencesModal(false);
+                    } catch (error) {
+                      console.error('Error saving preferences:', error);
+                      toast.error('Failed to save preferences. Please try again.');
+                    }
+                  }}
+                  className="flex-1 bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition-all duration-200"
                 >
                   Save Preferences
                 </button>
                 <button
                   onClick={() => setShowServicePreferencesModal(false)}
-                  className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all duration-200"
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400 transition-all duration-200"
                 >
                   Cancel
                 </button>

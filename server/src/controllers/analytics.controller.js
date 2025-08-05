@@ -335,9 +335,124 @@ const calculateSystemHealth = ({ totalUsers, activeUsers, totalSchools, activeSc
   return Math.max(health, 0);
 };
 
+// Get system health status
+const getSystemHealth = async (req, res) => {
+  try {
+    const [totalUsers, activeUsers, totalSchools, activeSchools] = await Promise.all([
+      User.count(),
+      User.count({ where: { isActive: true } }),
+      School.count(),
+      School.count({ where: { isActive: true } })
+    ]);
+
+    const health = calculateSystemHealth({ totalUsers, activeUsers, totalSchools, activeSchools });
+
+    res.json({
+      status: health > 80 ? 'healthy' : health > 60 ? 'warning' : 'critical',
+      health: health,
+      services: {
+        database: 'connected',
+        redis: 'connected',
+        storage: 'available'
+      },
+      metrics: {
+        totalUsers,
+        activeUsers,
+        totalSchools,
+        activeSchools
+      }
+    });
+  } catch (error) {
+    console.error('Get system health error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get activity logs
+const getActivityLogs = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    const activities = await getRecentSystemActivity(limit);
+    
+    res.json({
+      data: activities,
+      pagination: {
+        page,
+        limit,
+        total: activities.length,
+        totalPages: Math.ceil(activities.length / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get activity logs error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get system logs (simplified version)
+const getSystemLogs = async (req, res) => {
+  try {
+    const level = req.query.level || 'all';
+    const limit = parseInt(req.query.limit) || 50;
+
+    // Generate mock system logs for demo
+    const logs = [
+      {
+        id: 1,
+        level: 'info',
+        message: 'System started successfully',
+        timestamp: new Date().toISOString()
+      },
+      {
+        id: 2,
+        level: 'info',
+        message: 'Database connection established',
+        timestamp: new Date(Date.now() - 300000).toISOString()
+      },
+      {
+        id: 3,
+        level: 'warn',
+        message: 'High memory usage detected',
+        timestamp: new Date(Date.now() - 600000).toISOString()
+      },
+      {
+        id: 4,
+        level: 'info',
+        message: 'User authentication successful',
+        timestamp: new Date(Date.now() - 900000).toISOString()
+      },
+      {
+        id: 5,
+        level: 'error',
+        message: 'Failed to process payment',
+        timestamp: new Date(Date.now() - 1200000).toISOString()
+      }
+    ];
+
+    // Filter by level if specified
+    const filteredLogs = level === 'all' 
+      ? logs 
+      : logs.filter(log => log.level === level);
+
+    res.json({
+      logs: filteredLogs.slice(0, limit),
+      total: filteredLogs.length
+    });
+  } catch (error) {
+    console.error('Get system logs error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getUserGrowthAnalytics,
   getSchoolAnalytics,
-  getSystemPerformance
+  getSystemPerformance,
+  getSystemHealth,
+  getActivityLogs,
+  getSystemLogs
 };

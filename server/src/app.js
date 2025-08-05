@@ -21,6 +21,10 @@ const feeRoutes = require('./routes/fees');
 const financeRoutes = require('./routes/finance');
 const signatureRoutes = require('./routes/signatures.routes');
 const financialReportsRoutes = require('./routes/financialReports.routes');
+const receiptsRoutes = require('./routes/receipts.routes');
+const studentServicePreferencesRoutes = require('./routes/studentServicePreferences.routes');
+const subscriptionRoutes = require('./routes/subscription.routes');
+const adminSubscriptionRoutes = require('./routes/admin.subscription.routes');
 
 // Import middleware
 const { authMiddleware } = require('./middleware/auth.middleware');
@@ -173,6 +177,10 @@ app.use('/api/v1/fees', feeRoutes);
 app.use('/api/v1/finance', financeRoutes);
 app.use('/api/v1/signatures', signatureRoutes);
 app.use('/api/v1/financial-reports', financialReportsRoutes);
+app.use('/api/v1/receipts', receiptsRoutes);
+app.use('/api/v1/student-service-preferences', studentServicePreferencesRoutes);
+app.use('/api/v1/subscription', subscriptionRoutes);
+app.use('/api/v1/admin', adminSubscriptionRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

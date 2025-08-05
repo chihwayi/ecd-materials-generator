@@ -200,6 +200,35 @@ router.post('/payments', authenticateToken, requireRole(['finance']), async (req
       ]
     });
 
+    // Automatically create receipt for the payment
+    try {
+      const { Receipt } = require('../models');
+      const generateReceiptNumber = require('../controllers/receipts.controller').generateReceiptNumber;
+      
+      const receiptNumber = await generateReceiptNumber(req.user.schoolId);
+      
+      await Receipt.create({
+        receiptNumber,
+        paymentId: payment.id,
+        schoolId: req.user.schoolId,
+        studentId: studentFee.studentId,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        paymentDate: new Date(),
+        academicYear: studentFee.academicYear,
+        term: studentFee.term,
+        month: studentFee.month,
+        feeStructureName: studentFee.feeStructure?.name || 'Unknown',
+        studentName: `${studentFee.student?.firstName} ${studentFee.student?.lastName}`,
+        recordedBy: req.user.id,
+        recordedByName: `${req.user.firstName} ${req.user.lastName}`,
+        notes: notes
+      });
+    } catch (receiptError) {
+      console.error('Error creating receipt:', receiptError);
+      // Don't fail the payment if receipt creation fails
+    }
+
     res.status(201).json(createdPayment);
   } catch (error) {
     console.error('Error recording payment:', error);

@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import DataTable, { Column } from '../../components/admin/DataTable.tsx';
+import { User } from '../../types/user.types';
+import { adminService, adminUtils } from '../../services/admin.service.ts';
+import UserManagement from '../../components/admin/UserManagement.tsx';
 import Modal from '../../components/admin/Modal.tsx';
 import PasswordResetModal from '../../components/admin/PasswordResetModal.tsx';
-import { adminService, adminUtils } from '../../services/admin.service';
-import { User, School, CreateUserRequest, UpdateUserRequest, UserFilters } from '../../types/user.types';
 
 const UserManagementPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [schools, setSchools] = useState<School[]>([]);
+  const [schools, setSchools] = useState<any[]>([]); // Changed to any[] as School type is removed
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
     current: 1,
     total: 0,
     pageSize: 10
   });
-  const [filters, setFilters] = useState<UserFilters>({});
+  const [filters, setFilters] = useState<{
+    search?: string;
+    role?: string;
+    isActive?: boolean | string;
+    schoolId?: string;
+  }>({}); // Define proper filter types
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -23,7 +28,7 @@ const UserManagementPage: React.FC = () => {
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [isPasswordResetModalOpen, setIsPasswordResetModalOpen] = useState(false);
   const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
-  const [formData, setFormData] = useState<CreateUserRequest>({
+  const [formData, setFormData] = useState({
     email: '',
     password: '',
     firstName: '',
@@ -82,7 +87,7 @@ const UserManagementPage: React.FC = () => {
     if (!selectedUser) return;
     
     try {
-      const updateData: UpdateUserRequest = { ...formData };
+      const updateData = { ...formData };
       delete (updateData as any).password; // Don't update password unless specifically provided
       
       await adminService.updateUser(selectedUser.id, updateData);
@@ -204,7 +209,7 @@ const UserManagementPage: React.FC = () => {
     setIsPasswordResetModalOpen(true);
   };
 
-  const columns: Column<User>[] = [
+  const columns = [
     {
       key: 'select',
       title: (
@@ -410,8 +415,8 @@ const UserManagementPage: React.FC = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700">School</label>
           <select
-            value={formData.schoolId || ''}
-            onChange={(e) => setFormData({ ...formData, schoolId: e.target.value || null })}
+            value={formData.schoolId ?? ''}
+            onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">No School</option>
@@ -618,17 +623,7 @@ const UserManagementPage: React.FC = () => {
 
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <DataTable
-          data={users}
-          columns={columns}
-          loading={loading}
-          pagination={{
-            current: pagination.current,
-            total: pagination.total,
-            pageSize: pagination.pageSize,
-            onChange: (page, pageSize) => setPagination({ ...pagination, current: page, pageSize })
-          }}
-        />
+        <UserManagement />
       </div>
 
       {/* Create User Modal */}
@@ -639,7 +634,6 @@ const UserManagementPage: React.FC = () => {
           resetForm();
         }}
         title="Create New User"
-        size="lg"
         footer={
           <div className="flex space-x-3">
             <button
@@ -671,7 +665,6 @@ const UserManagementPage: React.FC = () => {
           resetForm();
         }}
         title="Edit User"
-        size="lg"
         footer={
           <div className="flex space-x-3">
             <button

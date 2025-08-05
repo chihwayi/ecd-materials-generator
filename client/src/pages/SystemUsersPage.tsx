@@ -1,5 +1,5 @@
 import React from 'react';
-import UserManagementPage from './admin/UserManagementPage';
+import UserManagementPage from './admin/UserManagementPage.tsx';
 
 const SystemUsersPage: React.FC = () => {
   return (

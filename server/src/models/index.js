@@ -13,6 +13,10 @@ const StudentFee = require('./StudentFee');
 const FeePayment = require('./FeePayment');
 const Signature = require('./Signature');
 const FinancialReport = require('./FinancialReport');
+const Receipt = require('./Receipt');
+const StudentServicePreference = require('./StudentServicePreference');
+const Subscription = require('./Subscription');
+const SubscriptionPayment = require('./SubscriptionPayment');
 
 // Define associations
 User.belongsTo(School, { foreignKey: 'schoolId' });
@@ -98,6 +102,33 @@ FinancialReport.belongsTo(User, { foreignKey: 'generatedBy', as: 'generatedByUse
 School.hasMany(FinancialReport, { foreignKey: 'schoolId', as: 'financialReports' });
 User.hasMany(FinancialReport, { foreignKey: 'generatedBy', as: 'generatedReports' });
 
+// Receipt associations
+Receipt.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+Receipt.belongsTo(Student, { foreignKey: 'studentId', as: 'student' });
+Receipt.belongsTo(FeePayment, { foreignKey: 'paymentId', as: 'payment' });
+Receipt.belongsTo(User, { foreignKey: 'recordedBy', as: 'recordedByUser' });
+Receipt.belongsTo(User, { foreignKey: 'printedBy', as: 'printedByUser' });
+School.hasMany(Receipt, { foreignKey: 'schoolId', as: 'receipts' });
+Student.hasMany(Receipt, { foreignKey: 'studentId', as: 'receipts' });
+FeePayment.hasOne(Receipt, { foreignKey: 'paymentId', as: 'receipt' });
+User.hasMany(Receipt, { foreignKey: 'recordedBy', as: 'recordedReceipts' });
+User.hasMany(Receipt, { foreignKey: 'printedBy', as: 'printedReceipts' });
+
+// StudentServicePreference associations
+StudentServicePreference.belongsTo(Student, { foreignKey: 'student_id', as: 'student' });
+StudentServicePreference.belongsTo(School, { foreignKey: 'school_id', as: 'school' });
+Student.hasOne(StudentServicePreference, { foreignKey: 'student_id', as: 'servicePreference' });
+School.hasMany(StudentServicePreference, { foreignKey: 'school_id', as: 'studentServicePreferences' });
+
+// Subscription associations
+Subscription.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+School.hasMany(Subscription, { foreignKey: 'schoolId', as: 'subscriptions' });
+
+SubscriptionPayment.belongsTo(Subscription, { foreignKey: 'subscriptionId', as: 'subscription' });
+SubscriptionPayment.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+Subscription.hasMany(SubscriptionPayment, { foreignKey: 'subscriptionId', as: 'payments' });
+School.hasMany(SubscriptionPayment, { foreignKey: 'schoolId', as: 'subscriptionPayments' });
+
 module.exports = {
   User,
   School,
@@ -113,5 +144,9 @@ module.exports = {
   StudentFee,
   FeePayment,
   Signature,
-  FinancialReport
+  FinancialReport,
+  Receipt,
+  StudentServicePreference,
+  Subscription,
+  SubscriptionPayment
 };

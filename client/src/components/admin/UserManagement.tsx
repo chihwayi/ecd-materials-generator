@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { adminService } from '../../services/admin.service';
-import CreateUserModal from './CreateUserModal';
+import { adminService } from '../../services/admin.service.ts';
+import CreateUserModal from './CreateUserModal.tsx';
 
 interface User {
   id: string;

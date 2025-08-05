@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { adminService } from '../../services/admin.service';
+import { adminService } from '../../services/admin.service.ts';
 
 interface PasswordResetModalProps {
   isOpen: boolean;

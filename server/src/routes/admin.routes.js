@@ -610,4 +610,279 @@ router.get('/users/reset-password', adminOnly, async (req, res) => {
   }
 });
 
+// Admin User Management Endpoints
+router.get('/users', adminOnly, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    
+    const { role, search, isActive, schoolId } = req.query;
+    const whereClause = {};
+
+    if (role && role !== '') {
+      whereClause.role = role;
+    }
+
+    if (search) {
+      whereClause[Op.or] = [
+        { firstName: { [Op.iLike]: `%${search}%` } },
+        { lastName: { [Op.iLike]: `%${search}%` } },
+        { email: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    if (isActive !== undefined && isActive !== '') {
+      whereClause.isActive = isActive === 'true';
+    }
+
+    if (schoolId && schoolId !== '') {
+      whereClause.schoolId = schoolId;
+    }
+
+    const { count, rows: users } = await User.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: School,
+          as: 'school',
+          attributes: ['id', 'name']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
+    });
+
+    res.json({
+      data: users,
+      pagination: {
+        total: count,
+        page,
+        limit,
+        totalPages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+router.post('/users', adminOnly, async (req, res) => {
+  try {
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+      phoneNumber,
+      language,
+      schoolId,
+      subscriptionPlan
+    } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !firstName || !lastName || !role) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role,
+      phoneNumber,
+      language: language || 'en',
+      schoolId,
+      subscriptionPlan: subscriptionPlan || 'free',
+      isActive: true
+    });
+
+    res.status(201).json({
+      message: 'User created successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+router.put('/users/:id', adminOnly, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const updateData = { ...req.body };
+
+    // Remove password from update data if not provided
+    if (!updateData.password) {
+      delete updateData.password;
+    } else {
+      // Hash new password if provided
+      updateData.password = await bcrypt.hash(updateData.password, 12);
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await user.update(updateData);
+
+    res.json({
+      message: 'User updated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+router.delete('/users/:id', adminOnly, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await user.destroy();
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+router.put('/users/:id/toggle-status', adminOnly, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await user.update({ isActive: !user.isActive });
+
+    res.json({
+      message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
+      isActive: user.isActive
+    });
+  } catch (error) {
+    console.error('Error toggling user status:', error);
+    res.status(500).json({ error: 'Failed to toggle user status' });
+  }
+});
+
+router.delete('/users/bulk', adminOnly, async (req, res) => {
+  try {
+    const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'User IDs are required' });
+    }
+
+    await User.destroy({
+      where: { id: userIds }
+    });
+
+    res.json({ message: `${userIds.length} users deleted successfully` });
+  } catch (error) {
+    console.error('Error bulk deleting users:', error);
+    res.status(500).json({ error: 'Failed to delete users' });
+  }
+});
+
+router.put('/users/bulk', adminOnly, async (req, res) => {
+  try {
+    const { userIds, updateData } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'User IDs are required' });
+    }
+
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'Update data is required' });
+    }
+
+    await User.update(updateData, {
+      where: { id: userIds }
+    });
+
+    res.json({ message: `${userIds.length} users updated successfully` });
+  } catch (error) {
+    console.error('Error bulk updating users:', error);
+    res.status(500).json({ error: 'Failed to update users' });
+  }
+});
+
+router.get('/users/export', adminOnly, async (req, res) => {
+  try {
+    const { format = 'csv' } = req.query;
+    
+    const users = await User.findAll({
+      include: [
+        {
+          model: School,
+          as: 'school',
+          attributes: ['name']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (format === 'csv') {
+      const csvData = [
+        ['ID', 'First Name', 'Last Name', 'Email', 'Role', 'School', 'Status', 'Created At'].join(','),
+        ...users.map(user => [
+          user.id,
+          user.firstName,
+          user.lastName,
+          user.email,
+          user.role,
+          user.school?.name || 'N/A',
+          user.isActive ? 'Active' : 'Inactive',
+          user.createdAt
+        ].join(','))
+      ].join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=users_export_${new Date().toISOString().split('T')[0]}.csv`);
+      res.send(csvData);
+    } else {
+      res.json({ users });
+    }
+  } catch (error) {
+    console.error('Error exporting users:', error);
+    res.status(500).json({ error: 'Failed to export users' });
+  }
+});
+
 module.exports = router;
