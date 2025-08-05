@@ -1,0 +1,16 @@
+{
+  "name": "ecd-template-studio",
+  "version": "1.0.0",
+  "description": "Visual template creator for ECD Materials Generator",
+  "main": "server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/server.js",
+    "client": "cd client && npm start",
+    "setup": "npm install && cd client && npm install && cd ../server && npm install"
+  },
+  "dependencies": {
+    "concurrently": "^7.6.0",
+    "nodemon": "^2.0.20"
+  }
+}

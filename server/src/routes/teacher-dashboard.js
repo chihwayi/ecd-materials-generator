@@ -1,10 +1,10 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 const { Material, Assignment, Student, Template, Class } = require('../models');
 const router = express.Router();
 
 // Get teacher dashboard stats
-router.get('/teacher/stats', authMiddleware, async (req, res) => {
+router.get('/teacher/stats', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'teacher') {
       return res.status(403).json({ error: 'Access denied' });
@@ -36,7 +36,7 @@ router.get('/teacher/stats', authMiddleware, async (req, res) => {
 });
 
 // Get teacher's recent activity
-router.get('/teacher/activity', authMiddleware, async (req, res) => {
+router.get('/teacher/activity', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'teacher') {
       return res.status(403).json({ error: 'Access denied' });

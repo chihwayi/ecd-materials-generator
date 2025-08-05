@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware: authenticateToken, requireRole } = require('../middleware/auth.middleware');
+const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
 const { User, Student, Assignment, StudentAssignment, Progress, Class } = require('../models');
 const { Op } = require('sequelize');
 
@@ -88,6 +88,7 @@ router.get('/assignments', authenticateToken, requireRole(['parent']), async (re
       grade: sa.grade,
       gradedAt: sa.gradedAt,
       parentViewed: sa.parentViewed || false,
+      submissions: sa.submissions, // Include submissions data
       assignment: sa.assignment,
       student: sa.student
     }));

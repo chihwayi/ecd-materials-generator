@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware: authenticateToken, requireRole } = require('../middleware/auth.middleware');
+const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
 
 // Get teacher's assigned students
 router.get('/', authenticateToken, requireRole(['teacher', 'school_admin']), async (req, res) => {

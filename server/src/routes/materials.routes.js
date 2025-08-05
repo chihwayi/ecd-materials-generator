@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware: authenticateToken, requireRole } = require('../middleware/auth.middleware');
+const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
 const { getMaterials, createMaterial, getMaterial, updateMaterial, publishMaterial } = require('../controllers/materials.controller');
 
 // Get all materials for authenticated user

@@ -1,10 +1,10 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 const { Class, User, Student, School } = require('../models');
 const router = express.Router();
 
 // Get all classes for school admin
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -35,7 +35,7 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // Create new class
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -107,7 +107,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // Update class
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -139,7 +139,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 // Get class students
-router.get('/:id/students', authMiddleware, async (req, res) => {
+router.get('/:id/students', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -171,7 +171,7 @@ router.get('/:id/students', authMiddleware, async (req, res) => {
 });
 
 // Get available teachers for assignment
-router.get('/available-teachers', authMiddleware, async (req, res) => {
+router.get('/available-teachers', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });

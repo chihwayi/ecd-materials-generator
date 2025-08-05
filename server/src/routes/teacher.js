@@ -1,5 +1,5 @@
 const express = require('express');
-const { authMiddleware: authenticateToken, requireRole } = require('../middleware/auth.middleware');
+const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
 const { Material, Assignment, Student, Template, Class, StudentAssignment } = require('../models');
 const sequelize = require('../config/database.config'); // Fixed import path
 const router = express.Router();

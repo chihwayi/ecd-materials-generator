@@ -5,12 +5,26 @@
   "scripts": {
     "dev": "./start-dev.sh",
     "start": "./start-dev.sh",
-    "stop": "pkill -f 'docker-compose|nodemon|react-scripts'",
-    "setup": "npm install && cd server && npm install && cd ../client && npm install --legacy-peer-deps",
+    "stop": "docker-compose down && for port in 3000 3001 5000 5001 5432 6379 8080; do lsof -ti:$port | xargs -r kill -9; done",
+    "setup": "npm install && cd server && npm install && cd ../client && npm install --legacy-peer-deps && cd ../template-studio && npm run setup",
+    "setup-clean": "./scripts/setup-clean.sh",
     "build": "cd client && npm run build",
     "test": "cd server && npm test && cd ../client && npm test"
   },
-  "keywords": ["ecd", "education", "zimbabwe", "materials", "generator"],
+  "keywords": [
+    "ecd",
+    "education",
+    "zimbabwe",
+    "materials",
+    "generator"
+  ],
   "author": "ECD Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.1",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.7"
+  }
 }

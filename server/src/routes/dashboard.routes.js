@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware: authenticateToken, requireRole } = require('../middleware/auth.middleware');
+const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
 
 // Get teacher dashboard statistics
 router.get('/teacher/dashboard/stats', authenticateToken, requireRole(['teacher']), async (req, res) => {

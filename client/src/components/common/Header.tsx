@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { logout } from '../../store/authSlice';
+import NotificationBadge from './NotificationBadge.tsx';
 
 const Header: React.FC = () => {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
@@ -31,28 +32,50 @@ const Header: React.FC = () => {
           </div>
 
           <nav className="hidden md:flex space-x-6">
-            <Link to="/templates" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📚 Templates</Link>
+            {/* Templates - Only for authenticated teachers and system_admins */}
+            {isAuthenticated && user?.role === 'teacher' && (
+              <Link to="/templates" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📚 Templates</Link>
+            )}
             {isAuthenticated && (
               <>
-                <Link to="/dashboard" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📊 Dashboard</Link>
+                <Link to={user?.role === 'finance' ? '/finance' : '/dashboard'} className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📊 Dashboard</Link>
                 
-                {/* Teacher & School Admin Navigation */}
-                {(user?.role === 'teacher' || user?.role === 'school_admin') && (
+                {/* Teacher Navigation */}
+                {user?.role === 'teacher' && (
                   <>
                     <Link to="/materials" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📄 Materials</Link>
                     <Link to="/students" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">👥 Students</Link>
                     <Link to="/assignments" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📝 Assignments</Link>
-                    {user?.role === 'teacher' && (
-                      <Link to="/messaging" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">💬 Messaging</Link>
-                    )}
+                    <Link to="/teacher/messages" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative">
+                      💬 Messages
+                      <NotificationBadge />
+                    </Link>
                   </>
+                )}
+                
+                {/* Parent Navigation */}
+                {user?.role === 'parent' && (
+                  <Link to="/parent/messages" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 relative">
+                    💬 Messages
+                    <NotificationBadge />
+                  </Link>
                 )}
                 
                 {/* School Admin Only Navigation */}
                 {user?.role === 'school_admin' && (
                   <>
                     <Link to="/manage-teachers" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">👨‍🏫 Teachers</Link>
+                    <Link to="/school-students" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">👥 Students</Link>
                     <Link to="/school-analytics" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📈 Analytics</Link>
+                    <Link to="/fee-management" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">💰 Fees</Link>
+                    <Link to="/school-finance" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">📊 Finance</Link>
+                  </>
+                )}
+
+                {/* Finance Role Navigation */}
+                {user?.role === 'finance' && (
+                  <>
+                    <Link to="/finance" className="text-blue-100 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">💰 Finances</Link>
                   </>
                 )}
                 

@@ -1,12 +1,12 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 const { User } = require('../models');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const router = express.Router();
 
 // Reset password for teachers/parents (school admin only)
-router.post('/reset-password', authMiddleware, async (req, res) => {
+router.post('/reset-password', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -48,7 +48,7 @@ router.post('/reset-password', authMiddleware, async (req, res) => {
 });
 
 // Get users for password reset (teachers and parents only)
-router.get('/users', authMiddleware, async (req, res) => {
+router.get('/users', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });

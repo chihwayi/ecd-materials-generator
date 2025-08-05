@@ -233,7 +233,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
         </Link>
 
         <Link
-          to="/communication"
+          to="/teacher/messages"
           className="group bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 p-6 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-purple-200 hover:border-purple-300 transform hover:-translate-y-1"
         >
           <div className="flex items-center justify-between mb-4">
@@ -246,9 +246,9 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
               </span>
             )}
           </div>
-          <h3 className="font-semibold text-gray-900 mb-2">Communicate with Parents</h3>
+          <h3 className="font-semibold text-gray-900 mb-2">View Messages</h3>
           <p className="text-sm text-gray-600">
-            {stats?.unreadMessages ? `${stats.unreadMessages} unread messages` : 'Send updates to parents'}
+            {stats?.unreadMessages ? `${stats.unreadMessages} unread messages` : 'Check parent messages'}
           </p>
         </Link>
       </div>

@@ -125,6 +125,10 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ user }) => {
         msg.id === messageId ? { ...msg, isRead: true } : msg
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
+      
+      // Refresh the unread count from server
+      const response = await api.get('/communication/messages/unread-count');
+      setUnreadCount(response.data.unreadCount);
     } catch (error) {
       console.error('Error marking message as read:', error);
     }

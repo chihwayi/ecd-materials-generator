@@ -6,7 +6,7 @@ const {
   getSchoolAnalytics,
   getSystemPerformance
 } = require('../controllers/analytics.controller');
-const { authMiddleware: authenticateToken, requireRole } = require('../middleware/auth.middleware');
+const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
 
 // System analytics routes (system admin only)
 router.get('/system/stats', authenticateToken, requireRole(['system_admin']), getSystemStats);

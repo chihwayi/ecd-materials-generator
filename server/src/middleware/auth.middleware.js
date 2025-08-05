@@ -36,4 +36,4 @@ const requireRole = (roles) => {
   };
 };
 
-module.exports = { authMiddleware, requireRole };
+module.exports = { authenticateToken: authMiddleware, requireRole };

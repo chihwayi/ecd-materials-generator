@@ -13,10 +13,14 @@ import MaterialEditorPage from './pages/MaterialEditorPage.tsx';
 import MaterialViewerPage from './pages/MaterialViewerPage.tsx';
 import StudentsPage from './pages/StudentsPage.tsx';
 import TeacherMessagingPage from './pages/TeacherMessagingPage.tsx';
+import TeacherMessagesPage from './pages/TeacherMessagesPage.tsx';
+import ParentMessagesPage from './pages/ParentMessagesPage.tsx';
+import SchoolAdminFeeManagementPage from './pages/SchoolAdminFeeManagementPage.tsx';
+import FinanceDashboardPage from './pages/FinanceDashboardPage.tsx';
+import SchoolAdminFinancePage from './pages/SchoolAdminFinancePage.tsx';
 import SystemUsersPage from './pages/SystemUsersPage';
 import ManageTeachersPage from './pages/ManageTeachersPage';
 import SchoolStudentsPage from './pages/SchoolStudentsPage';
-import SchoolMaterialsPage from './pages/SchoolMaterialsPage';
 import SchoolAnalyticsPage from './pages/SchoolAnalyticsPage';
 import ManageClassesPage from './pages/ManageClassesPage';
 import PasswordRecoveryPage from './pages/PasswordRecoveryPage';
@@ -29,6 +33,8 @@ import StudentAssignmentPage from './pages/StudentAssignmentPage';
 import StudentAssignmentCompletionPage from './pages/StudentAssignmentCompletionPage';
 import TeacherAssignmentReviewPage from './pages/TeacherAssignmentReviewPage';
 import ParentAssignmentsPage from './pages/ParentAssignmentsPage.tsx';
+import ProgressReportsPage from './pages/ProgressReportsPage.tsx';
+import ContactTeacherPage from './pages/ContactTeacherPage.tsx';
 import SchoolSettingsPage from './pages/SchoolSettingsPage';
 import UserManagementPage from './pages/admin/UserManagementPage.tsx';
 import SchoolManagementPage from './pages/admin/SchoolManagementPage.tsx';
@@ -43,6 +49,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
+const FinanceRedirect: React.FC = () => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  
+  if (user?.role === 'school_admin') {
+    return <Navigate to="/school-finance" replace />;
+  }
+  
+  return <FinanceDashboardPage />;
+};
+
 const AppContent: React.FC = () => {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -52,7 +68,14 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
-          <Route path="/templates" element={<TemplatesPage />} />
+          <Route 
+            path="/templates" 
+            element={
+              <RoleProtectedRoute allowedRoles={['teacher', 'system_admin']}>
+                <TemplatesPage />
+              </RoleProtectedRoute>
+            } 
+          />
           <Route
             path="/dashboard"
             element={
@@ -64,33 +87,33 @@ const AppContent: React.FC = () => {
           <Route
             path="/materials"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['teacher']}>
                 <MaterialsPage />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/materials/create"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['teacher']}>
                 <MaterialEditorPage />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/materials/:id/edit"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['teacher']}>
                 <MaterialEditorPage />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/materials/:id"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['teacher']}>
                 <MaterialViewerPage />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
@@ -110,9 +133,25 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
+            path="/teacher/messages"
+            element={
+              <RoleProtectedRoute allowedRoles={['teacher']}>
+                <TeacherMessagesPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/messages"
+            element={
+              <RoleProtectedRoute allowedRoles={['parent']}>
+                <ParentMessagesPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
             path="/assignments"
             element={
-              <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
+              <RoleProtectedRoute allowedRoles={['teacher']}>
                 <TeacherAssignmentsPage />
               </RoleProtectedRoute>
             }
@@ -120,7 +159,7 @@ const AppContent: React.FC = () => {
           <Route
             path="/assignments/:id"
             element={
-              <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
+              <RoleProtectedRoute allowedRoles={['teacher']}>
                 <TeacherAssignmentReviewPage />
               </RoleProtectedRoute>
             }
@@ -128,7 +167,7 @@ const AppContent: React.FC = () => {
           <Route
             path="/assignments/:id/edit"
             element={
-              <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
+              <RoleProtectedRoute allowedRoles={['teacher']}>
                 <CreateAssignmentPage />
               </RoleProtectedRoute>
             }
@@ -157,14 +196,6 @@ const AppContent: React.FC = () => {
             element={
               <RoleProtectedRoute allowedRoles={['system_admin']}>
                 <SystemUsersPage />
-              </RoleProtectedRoute>
-            }
-          />
-          <Route
-            path="/students"
-            element={
-              <RoleProtectedRoute allowedRoles={['teacher', 'school_admin']}>
-                <StudentsPage />
               </RoleProtectedRoute>
             }
           />
@@ -244,18 +275,34 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
-            path="/school-materials"
-            element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <SchoolMaterialsPage />
-              </RoleProtectedRoute>
-            }
-          />
-          <Route
             path="/school-analytics"
             element={
               <RoleProtectedRoute allowedRoles={['school_admin']}>
                 <SchoolAnalyticsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/fee-management"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <SchoolAdminFeeManagementPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/finance"
+            element={
+              <RoleProtectedRoute allowedRoles={['finance', 'school_admin']}>
+                <FinanceRedirect />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/school-finance"
+            element={
+              <RoleProtectedRoute allowedRoles={['school_admin']}>
+                <SchoolAdminFinancePage />
               </RoleProtectedRoute>
             }
           />
@@ -308,14 +355,6 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
-            path="/student-assignment-management"
-            element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <StudentAssignmentPage />
-              </RoleProtectedRoute>
-            }
-          />
-          <Route
             path="/assignments/:assignmentId/complete"
             element={
               <RoleProtectedRoute allowedRoles={['parent']}>
@@ -344,6 +383,22 @@ const AppContent: React.FC = () => {
             element={
               <RoleProtectedRoute allowedRoles={['parent']}>
                 <ParentAssignmentsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/progress-reports"
+            element={
+              <RoleProtectedRoute allowedRoles={['parent']}>
+                <ProgressReportsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/contact-teacher"
+            element={
+              <RoleProtectedRoute allowedRoles={['parent']}>
+                <ContactTeacherPage />
               </RoleProtectedRoute>
             }
           />

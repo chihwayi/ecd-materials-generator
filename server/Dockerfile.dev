@@ -1,40 +1,18 @@
-FROM node:22-alpine
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Install system dependencies in one layer
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev \
-    cairo \
-    jpeg \
-    pango \
-    giflib \
-    font-noto \
-    font-noto-emoji \
-    ttf-liberation \
-    && rm -rf /var/cache/apk/*
-
-# Copy package files first for better layer caching
+# Copy package files
 COPY package*.json ./
 
-# Use npm install with cache optimization
-# Set npm cache directory and use offline mode when possible
-RUN npm config set cache /tmp/.npm && \
-    npm install --prefer-offline --no-audit --production=false
-
-# Create directories with proper permissions
-RUN mkdir -p uploads logs && chmod 755 uploads logs
+# Install dependencies
+RUN npm install
 
 # Copy source code
 COPY . .
 
-EXPOSE 5000 9229
+# Expose port
+EXPOSE 5000
 
-# Use exec form for better signal handling
+# Start development server with nodemon
 CMD ["npm", "run", "dev"]

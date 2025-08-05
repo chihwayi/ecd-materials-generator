@@ -1,10 +1,10 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 const { School } = require('../models');
 const router = express.Router();
 
 // Get school settings
-router.get('/settings', authMiddleware, async (req, res) => {
+router.get('/settings', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -30,7 +30,7 @@ router.get('/settings', authMiddleware, async (req, res) => {
 });
 
 // Update school settings
-router.put('/settings', authMiddleware, async (req, res) => {
+router.put('/settings', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });

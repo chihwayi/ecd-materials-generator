@@ -1,10 +1,10 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 const { Template } = require('../models');
 const router = express.Router();
 
 // Get all templates
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const templates = await Template.findAll({
       where: { isActive: true },
@@ -19,7 +19,7 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // Get template by ID
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const template = await Template.findOne({
       where: { 
@@ -40,7 +40,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // Create new template (admin only)
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -59,7 +59,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // Update template (admin only)
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -82,7 +82,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 // Delete template (admin only)
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ error: 'Access denied' });

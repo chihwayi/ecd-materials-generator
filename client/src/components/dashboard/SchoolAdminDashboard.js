@@ -24,7 +24,7 @@ const SchoolAdminDashboard = ({ user }) => {
   return (
     <div className="space-y-8">
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-4 gap-6">
+      <div className="grid md:grid-cols-3 gap-6">
         <Link
           to="/manage-teachers"
           className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
@@ -45,17 +45,6 @@ const SchoolAdminDashboard = ({ user }) => {
           </div>
           <h3 className="font-semibold text-gray-900 mb-2">All Students</h3>
           <p className="text-sm text-gray-600">View all students</p>
-        </Link>
-
-        <Link
-          to="/school-materials"
-          className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
-        >
-          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-            <span className="text-2xl">📚</span>
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-2">School Materials</h3>
-          <p className="text-sm text-gray-600">Shared materials</p>
         </Link>
 
         <Link
@@ -153,11 +142,11 @@ const SchoolAdminDashboard = ({ user }) => {
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Learning Materials</p>
-              <p className="text-3xl font-bold text-gray-900">{analytics?.totalMaterials || 0}</p>
+              <p className="text-sm font-medium text-gray-600">Total Classes</p>
+              <p className="text-3xl font-bold text-gray-900">{analytics?.totalClasses || 0}</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">📚</span>
+              <span className="text-2xl">🏢</span>
             </div>
           </div>
         </div>

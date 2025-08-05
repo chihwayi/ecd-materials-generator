@@ -11,11 +11,16 @@ module.exports = {
     const teacherId1 = uuidv4();
     const teacherId2 = uuidv4();
     const parentId = uuidv4();
+    const financeId = uuidv4();
     const templateId1 = uuidv4();
     const templateId2 = uuidv4();
     const materialId1 = uuidv4();
     const studentId1 = uuidv4();
     const studentId2 = uuidv4();
+    const feeStructureId1 = uuidv4();
+    const feeStructureId2 = uuidv4();
+    const feeStructureId3 = uuidv4();
+    const feeStructureId4 = uuidv4();
 
     // Insert Schools
     await queryInterface.bulkInsert('Schools', [
@@ -112,6 +117,23 @@ module.exports = {
         language: 'nd',
         schoolId: schoolId2,
         subscriptionPlan: 'teacher',
+        subscriptionStatus: 'active',
+        isActive: true,
+        lastLoginAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: financeId,
+        email: 'finance@school.com',
+        password: await bcrypt.hash('finance123', 12),
+        role: 'finance',
+        firstName: 'Finance',
+        lastName: 'Manager',
+        phoneNumber: '+263-4-555-0006',
+        language: 'en',
+        schoolId: schoolId1,
+        subscriptionPlan: 'school',
         subscriptionStatus: 'active',
         isActive: true,
         lastLoginAt: new Date(),
@@ -247,6 +269,78 @@ module.exports = {
         assignments: 2,
         tags: ['counting', 'elephants', 'grade-r'],
         lastAccessed: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ]);
+
+    // Insert Fee Structures
+    await queryInterface.bulkInsert('FeeStructures', [
+      {
+        id: feeStructureId1,
+        schoolId: schoolId1,
+        name: 'Term Fees',
+        type: 'term',
+        category: 'tuition',
+        frequency: 'term',
+        amount: '255.00',
+        description: 'Term tuition fees for 3 months',
+        isActive: true,
+        academicYear: '2025',
+        term: null,
+        month: null,
+        dueDate: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: feeStructureId2,
+        schoolId: schoolId1,
+        name: 'Monthly Fees',
+        type: 'monthly',
+        category: 'tuition',
+        frequency: 'monthly',
+        amount: '90.00',
+        description: 'Monthly tuition fees',
+        isActive: true,
+        academicYear: '2025',
+        term: null,
+        month: null,
+        dueDate: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: feeStructureId3,
+        schoolId: schoolId1,
+        name: 'Monthly Transport',
+        type: 'transport',
+        category: 'transport',
+        frequency: 'monthly',
+        amount: '40.00',
+        description: 'Monthly transport service',
+        isActive: true,
+        academicYear: '2025',
+        term: null,
+        month: null,
+        dueDate: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: feeStructureId4,
+        schoolId: schoolId1,
+        name: 'Term Food Costs',
+        type: 'food',
+        category: 'food',
+        frequency: 'monthly',
+        amount: '40.00',
+        description: 'Food service for the whole term',
+        isActive: true,
+        academicYear: '2025',
+        term: null,
+        month: null,
+        dueDate: null,
         createdAt: new Date(),
         updatedAt: new Date()
       }

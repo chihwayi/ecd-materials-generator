@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 const { User, School, Material, Assignment } = require('../models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
@@ -8,7 +8,7 @@ const crypto = require('crypto');
 
 // Admin-only middleware
 const adminOnly = (req, res, next) => {
-  authMiddleware(req, res, (err) => {
+  authenticateToken(req, res, (err) => {
     if (err) return next(err);
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ message: 'Access denied' });
@@ -18,7 +18,7 @@ const adminOnly = (req, res, next) => {
 };
 
 // Delegated Admin Dashboard Stats
-router.get('/delegated-admin/dashboard/stats', authMiddleware, async (req, res) => {
+router.get('/delegated-admin/dashboard/stats', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'delegated_admin') {
       return res.status(403).json({ message: 'Access denied' });

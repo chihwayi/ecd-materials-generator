@@ -1,49 +1,35 @@
 #!/bin/bash
 
-echo "🚀 Starting ECD Materials Generator Development Environment..."
+echo "🚀 Starting ECD Materials Generator with Template Studio..."
 
-# Function to cleanup on exit
-cleanup() {
-    echo "🛑 Shutting down services..."
-    pkill -f "docker-compose"
-    pkill -f "nodemon"
-    pkill -f "react-scripts"
-    exit 0
-}
+# Kill any processes using our ports
+echo "🔄 Cleaning up ports..."
+for port in 3000 3001 5000 5001 5432 6379 8080; do
+  PID=$(lsof -ti:$port 2>/dev/null)
+  if [ ! -z "$PID" ]; then
+    echo "   Killing process on port $port (PID: $PID)"
+    kill -9 $PID 2>/dev/null
+  fi
+done
 
-# Set up cleanup trap
-trap cleanup SIGINT SIGTERM
+# Stop any existing docker services
+echo "🛑 Stopping existing services..."
+docker-compose down 2>/dev/null
 
-# Start Docker services (PostgreSQL & Redis)
-echo "📊 Starting database services..."
-docker-compose up -d postgres redis
+# Start all services
+echo "🚀 Starting all services..."
+docker-compose up -d
 
-# Wait for database to be ready
-echo "⏳ Waiting for database to be ready..."
-sleep 5
+echo "✅ Services starting..."
+echo "📊 Main ECD Platform: http://localhost:3000"
+echo "🎨 Template Studio: http://localhost:3001" 
+echo "🏪 Marketplace API: http://localhost:5001"
+echo "🗄️  Database: localhost:5432"
 
-# Start backend server
-echo "🔧 Starting backend server..."
-cd server
-npm run dev &
-BACKEND_PID=$!
+# Wait for services to be ready
+echo "⏳ Waiting for services to be ready..."
+sleep 10
 
-# Wait for backend to start
-echo "⏳ Waiting for backend to start..."
-sleep 3
-
-# Start frontend
-echo "🎨 Starting frontend..."
-cd ../client
-NODE_OPTIONS="--openssl-legacy-provider" npm start &
-FRONTEND_PID=$!
-
-echo "✅ All services started!"
-echo "📱 Frontend: http://localhost:3000"
-echo "🔧 Backend: http://localhost:5000"
-echo "📊 Database: postgresql://ecd_user:ecd_password@localhost:5432/ecd_db"
-echo ""
-echo "Press Ctrl+C to stop all services"
-
-# Wait for processes
-wait
+# Check service health
+echo "🔍 Checking service health..."
+docker-compose ps

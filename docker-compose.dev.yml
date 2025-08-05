@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  frontend:
+  frontend-dev:
     build:
       context: ./client
       dockerfile: Dockerfile.dev
@@ -11,43 +11,38 @@ services:
       - NODE_ENV=development
       - REACT_APP_API_URL=http://localhost:5000
       - REACT_APP_WS_URL=ws://localhost:5000
-      - WATCHPACK_POLLING=true
     volumes:
       - ./client:/app
       - /app/node_modules
     depends_on:
-      - backend
+      - backend-dev
     networks:
       - ecd-network
-    stdin_open: true
-    tty: true
+    restart: unless-stopped
 
-  backend:
+  backend-dev:
     build:
       context: ./server
       dockerfile: Dockerfile.dev
     ports:
       - "5000:5000"
-      - "9229:9229"  # Node.js debugging port
     environment:
       - NODE_ENV=development
       - PORT=5000
       - DATABASE_URL=postgresql://ecd_user:ecd_password@postgres:5432/ecd_db
       - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=dev-jwt-secret-key
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
       - JWT_EXPIRY=24h
       - REFRESH_TOKEN_EXPIRY=7d
     volumes:
       - ./server:/app
       - /app/node_modules
-      - uploads_dev:/app/uploads
-      - logs_dev:/app/logs
     depends_on:
       - postgres
       - redis
     networks:
       - ecd-network
-    command: npm run dev
+    restart: unless-stopped
 
   postgres:
     image: postgres:15-alpine
@@ -55,38 +50,33 @@ services:
       - POSTGRES_DB=ecd_db
       - POSTGRES_USER=ecd_user
       - POSTGRES_PASSWORD=ecd_password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     volumes:
-      - postgres_data_dev:/var/lib/postgresql/data
-      - ./scripts/init-dev.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./scripts/init-template-store.sql:/docker-entrypoint-initdb.d/02-init-template-store.sql
     ports:
       - "5432:5432"
     networks:
       - ecd-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecd_user -d ecd_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data_dev:/data
     networks:
       - ecd-network
-    command: redis-server --appendonly yes
-
-  mailhog:
-    image: mailhog/mailhog:latest
-    ports:
-      - "1025:1025"  # SMTP server
-      - "8025:8025"  # Web UI
-    networks:
-      - ecd-network
-
-volumes:
-  postgres_data_dev:
-  redis_data_dev:
-  uploads_dev:
-  logs_dev:
+    restart: unless-stopped
 
 networks:
   ecd-network:
     driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,0 +1,14 @@
+{
+  "name": "template-studio-server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.8.0",
+    "sequelize": "^6.28.0",
+    "uuid": "^9.0.0",
+    "archiver": "^5.3.1"
+  }
+}

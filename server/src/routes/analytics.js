@@ -1,10 +1,10 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 const { User, School, Material, Student } = require('../models');
 const router = express.Router();
 
 // User growth analytics
-router.get('/users/growth', authMiddleware, async (req, res) => {
+router.get('/users/growth', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -31,7 +31,7 @@ router.get('/users/growth', authMiddleware, async (req, res) => {
 });
 
 // School analytics
-router.get('/schools/performance', authMiddleware, async (req, res) => {
+router.get('/schools/performance', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -54,7 +54,7 @@ router.get('/schools/performance', authMiddleware, async (req, res) => {
 });
 
 // System overview
-router.get('/overview', authMiddleware, async (req, res) => {
+router.get('/overview', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -82,7 +82,7 @@ router.get('/overview', authMiddleware, async (req, res) => {
 });
 
 // System stats
-router.get('/system/stats', authMiddleware, async (req, res) => {
+router.get('/system/stats', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -130,7 +130,7 @@ router.get('/system/stats', authMiddleware, async (req, res) => {
 });
 
 // System performance
-router.get('/system/performance', authMiddleware, async (req, res) => {
+router.get('/system/performance', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -164,7 +164,7 @@ router.get('/system/performance', authMiddleware, async (req, res) => {
 });
 
 // School analytics
-router.get('/schools/analytics', authMiddleware, async (req, res) => {
+router.get('/schools/analytics', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'system_admin') {
       return res.status(403).json({ error: 'Access denied' });

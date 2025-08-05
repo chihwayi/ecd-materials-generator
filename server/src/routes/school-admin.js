@@ -1,10 +1,11 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth.middleware');
-const { User, Student, Material, School, Class } = require('../models');
+const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
+const { User, Student, Material, Class, School } = require('../models');
+const { Op } = require('sequelize');
 const router = express.Router();
 
 // Get school teachers
-router.get('/teachers', authMiddleware, async (req, res) => {
+router.get('/teachers', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -27,7 +28,7 @@ router.get('/teachers', authMiddleware, async (req, res) => {
 });
 
 // Create teacher
-router.post('/teachers', authMiddleware, async (req, res) => {
+router.post('/teachers', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -99,7 +100,7 @@ router.post('/teachers', authMiddleware, async (req, res) => {
 });
 
 // Get teacher by ID
-router.get('/teachers/:id', authMiddleware, async (req, res) => {
+router.get('/teachers/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -128,7 +129,7 @@ router.get('/teachers/:id', authMiddleware, async (req, res) => {
 });
 
 // Update teacher
-router.put('/teachers/:id', authMiddleware, async (req, res) => {
+router.put('/teachers/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -183,7 +184,7 @@ router.put('/teachers/:id', authMiddleware, async (req, res) => {
 });
 
 // Toggle teacher status (activate/deactivate)
-router.patch('/teachers/:id/toggle-status', authMiddleware, async (req, res) => {
+router.patch('/teachers/:id/toggle-status', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -223,7 +224,7 @@ router.patch('/teachers/:id/toggle-status', authMiddleware, async (req, res) => 
 
 
 // Get school materials
-router.get('/materials', authMiddleware, async (req, res) => {
+router.get('/materials', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -247,13 +248,13 @@ router.get('/materials', authMiddleware, async (req, res) => {
 });
 
 // Get school analytics
-router.get('/analytics', authMiddleware, async (req, res) => {
+router.get('/analytics', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const [teachersCount, studentsCount, materialsCount] = await Promise.all([
+    const [teachersCount, studentsCount, materialsCount, classesCount] = await Promise.all([
       User.count({ where: { role: 'teacher', schoolId: req.user.schoolId } }),
       Student.count({ where: { schoolId: req.user.schoolId } }),
       Material.count({
@@ -262,13 +263,15 @@ router.get('/analytics', authMiddleware, async (req, res) => {
           as: 'creator',
           where: { schoolId: req.user.schoolId }
         }]
-      })
+      }),
+      Class.count({ where: { schoolId: req.user.schoolId } })
     ]);
 
     res.json({
       totalTeachers: teachersCount,
       totalStudents: studentsCount,
       totalMaterials: materialsCount,
+      totalClasses: classesCount,
       schoolPerformance: 85 // Mock data
     });
   } catch (error) {
@@ -278,7 +281,7 @@ router.get('/analytics', authMiddleware, async (req, res) => {
 });
 
 // Get all school students (school admin only)
-router.get('/students', authMiddleware, async (req, res) => {
+router.get('/students', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -314,7 +317,7 @@ router.get('/students', authMiddleware, async (req, res) => {
 });
 
 // Get unassigned students (school admin only)
-router.get('/students/unassigned', authMiddleware, async (req, res) => {
+router.get('/students/unassigned', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -343,7 +346,7 @@ router.get('/students/unassigned', authMiddleware, async (req, res) => {
 });
 
 // Get individual student details (school admin only)
-router.get('/students/:id', authMiddleware, async (req, res) => {
+router.get('/students/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -385,7 +388,7 @@ router.get('/students/:id', authMiddleware, async (req, res) => {
 });
 
 // Get student progress (school admin only)
-router.get('/students/:id/progress', authMiddleware, async (req, res) => {
+router.get('/students/:id/progress', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -426,7 +429,7 @@ router.get('/students/:id/progress', authMiddleware, async (req, res) => {
 });
 
 // Add progress record (school admin only)
-router.post('/students/:id/progress', authMiddleware, async (req, res) => {
+router.post('/students/:id/progress', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -471,7 +474,7 @@ router.post('/students/:id/progress', authMiddleware, async (req, res) => {
 });
 
 // Bulk assign students to class (school admin only)
-router.post('/students/bulk-assign', authMiddleware, async (req, res) => {
+router.post('/students/bulk-assign', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -550,7 +553,7 @@ router.post('/students/bulk-assign', authMiddleware, async (req, res) => {
 });
 
 // Get students by class (school admin only)
-router.get('/classes/:classId/students', authMiddleware, async (req, res) => {
+router.get('/classes/:classId/students', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });

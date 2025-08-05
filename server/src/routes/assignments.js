@@ -1,10 +1,10 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 const { Assignment, StudentAssignment, Student, Class, User } = require('../models');
 const router = express.Router();
 
 // Create batch assignment (teacher only)
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'teacher') {
       return res.status(403).json({ error: 'Access denied' });
@@ -63,7 +63,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // Get teacher's assignments
-router.get('/teacher', authMiddleware, async (req, res) => {
+router.get('/teacher', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'teacher') {
       return res.status(403).json({ error: 'Access denied' });
@@ -98,7 +98,7 @@ router.get('/teacher', authMiddleware, async (req, res) => {
 });
 
 // Get school admin assignments (all assignments in school)
-router.get('/school', authMiddleware, async (req, res) => {
+router.get('/school', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -133,7 +133,7 @@ router.get('/school', authMiddleware, async (req, res) => {
 });
 
 // Get single assignment with materials
-router.get('/:assignmentId', authMiddleware, async (req, res) => {
+router.get('/:assignmentId', authenticateToken, async (req, res) => {
   try {
     const assignment = await Assignment.findOne({
       where: { 
@@ -170,7 +170,7 @@ router.get('/:assignmentId', authMiddleware, async (req, res) => {
 });
 
 // Get student assignments (for parents)
-router.get('/student/:studentId', authMiddleware, async (req, res) => {
+router.get('/student/:studentId', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'parent') {
       return res.status(403).json({ error: 'Access denied' });
@@ -231,7 +231,7 @@ router.get('/student/:studentId', authMiddleware, async (req, res) => {
 });
 
 // Submit assignment (parent/student)
-router.post('/submit/:assignmentId', authMiddleware, async (req, res) => {
+router.post('/submit/:assignmentId', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'parent') {
       return res.status(403).json({ error: 'Access denied' });
@@ -273,7 +273,7 @@ router.post('/submit/:assignmentId', authMiddleware, async (req, res) => {
 });
 
 // Grade assignment (teacher)
-router.post('/grade/:studentAssignmentId', authMiddleware, async (req, res) => {
+router.post('/grade/:studentAssignmentId', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'teacher') {
       return res.status(403).json({ error: 'Access denied' });
@@ -321,7 +321,7 @@ router.post('/grade/:studentAssignmentId', authMiddleware, async (req, res) => {
 });
 
 // Get assignment for student completion
-router.get('/:assignmentId/student', authMiddleware, async (req, res) => {
+router.get('/:assignmentId/student', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'parent') {
       return res.status(403).json({ error: 'Access denied' });
@@ -380,7 +380,7 @@ router.get('/:assignmentId/student', authMiddleware, async (req, res) => {
 });
 
 // Complete assignment (student)
-router.post('/:assignmentId/complete', authMiddleware, async (req, res) => {
+router.post('/:assignmentId/complete', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'parent') {
       return res.status(403).json({ error: 'Access denied' });
@@ -422,7 +422,7 @@ router.post('/:assignmentId/complete', authMiddleware, async (req, res) => {
 });
 
 // Get assignment submissions for teacher review
-router.get('/:assignmentId/submissions', authMiddleware, async (req, res) => {
+router.get('/:assignmentId/submissions', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'teacher') {
       return res.status(403).json({ error: 'Access denied' });

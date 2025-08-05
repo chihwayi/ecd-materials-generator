@@ -17,6 +17,8 @@ const adminRoutes = require('./routes/admin.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const studentsRoutes = require('./routes/students');
 const communicationRoutes = require('./routes/communication');
+const feeRoutes = require('./routes/fees');
+const financeRoutes = require('./routes/finance');
 
 // Import middleware
 const { authMiddleware } = require('./middleware/auth.middleware');
@@ -43,11 +45,20 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com'] 
-    : ['http://localhost:3000'],
+  origin: true, // Allow all origins for now
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
 // Rate limiting
 const limiter = rateLimit({
@@ -94,7 +105,10 @@ app.use('/api/v1/password-recovery', require('./routes/password-recovery'));
 app.use('/api/v1/parent', require('./routes/parent'));
 app.use('/api/v1/school', require('./routes/school-settings'));
 app.use('/api/v1/analytics', require('./routes/analytics'));
+app.use('/api/v1/marketplace', require('./routes/marketplace'));
 app.use('/api/v1/communication', communicationRoutes);
+app.use('/api/v1/fees', feeRoutes);
+app.use('/api/v1/finance', financeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

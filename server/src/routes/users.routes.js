@@ -11,23 +11,23 @@ const {
   updateSchool,
   deleteSchool
 } = require('../controllers/users.controller');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 
 // User management routes (system admin only)
-router.get('/', authMiddleware, getAllUsers);
-router.get('/:id', authMiddleware, getUserById);
-router.post('/', authMiddleware, createUser);
-router.put('/:id', authMiddleware, updateUser);
-router.delete('/:id', authMiddleware, deleteUser);
+router.get('/', authenticateToken, getAllUsers);
+router.get('/:id', authenticateToken, getUserById);
+router.post('/', authenticateToken, createUser);
+router.put('/:id', authenticateToken, updateUser);
+router.delete('/:id', authenticateToken, deleteUser);
 
 // School management routes (system admin only)
-router.get('/schools/all', authMiddleware, getAllSchools);
-router.post('/schools', authMiddleware, createSchool);
-router.put('/schools/:id', authMiddleware, updateSchool);
-router.delete('/schools/:id', authMiddleware, deleteSchool);
+router.get('/schools/all', authenticateToken, getAllSchools);
+router.post('/schools', authenticateToken, createSchool);
+router.put('/schools/:id', authenticateToken, updateSchool);
+router.delete('/schools/:id', authenticateToken, deleteSchool);
 
 // User profile route (for authenticated users)
-router.get('/profile/me', authMiddleware, (req, res) => {
+router.get('/profile/me', authenticateToken, (req, res) => {
   res.json(req.user);
 });
 

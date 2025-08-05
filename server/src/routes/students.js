@@ -1,11 +1,11 @@
 const express = require('express');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticateToken } = require('../middleware/auth.middleware');
 const { Student, Class, User, School } = require('../models');
 const bcrypt = require('bcrypt');
 const router = express.Router();
 
 // Create parent account for existing student
-router.post('/:id/create-parent', authMiddleware, async (req, res) => {
+router.post('/:id/create-parent', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -74,7 +74,7 @@ router.post('/:id/create-parent', authMiddleware, async (req, res) => {
 });
 
 // Create student (school admin only)
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });
