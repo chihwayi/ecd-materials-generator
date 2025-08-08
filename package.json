@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "./start-dev.sh",
     "start": "./start-dev.sh",
-    "stop": "docker-compose down && for port in 3000 3001 5000 5001 5432 6379 8080; do lsof -ti:$port | xargs -r kill -9; done",
+    "start:prod": "docker-compose up -d",
+    "stop": "docker-compose -f docker-compose.dev.yml down && docker-compose down && for port in 3000 3001 5000 5001 5432 6379 8080; do lsof -ti:$port | xargs -r kill -9; done",
     "setup": "npm install && cd server && npm install && cd ../client && npm install --legacy-peer-deps && cd ../template-studio && npm run setup",
     "setup-clean": "./scripts/setup-clean.sh",
     "build": "cd client && npm run build",

@@ -7,6 +7,14 @@ const { Subscription, School, User, Student, Class } = require('../models');
 // Get all subscriptions for system admin monitoring
 router.get('/subscriptions', authenticateToken, requireRole(['system_admin']), async (req, res) => {
   try {
+    console.log('Fetching admin subscriptions...');
+    
+    // Add timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      console.log('Admin subscriptions query timed out');
+      res.status(504).json({ error: 'Request timeout' });
+    }, 10000); // 10 second timeout
+
     const subscriptions = await Subscription.findAll({
       include: [
         {
@@ -18,23 +26,43 @@ router.get('/subscriptions', authenticateToken, requireRole(['system_admin']), a
       order: [['createdAt', 'DESC']]
     });
 
+    clearTimeout(timeout);
+    console.log(`Found ${subscriptions.length} subscriptions`);
+
     // Get usage data for each subscription
     const subscriptionsWithUsage = await Promise.all(
       subscriptions.map(async (sub) => {
-        const usage = await subscriptionService.getSchoolUsage(sub.schoolId);
-        return {
-          id: sub.id,
-          schoolId: sub.schoolId,
-          schoolName: sub.school?.name || 'Unknown School',
-          planName: sub.planName,
-          status: sub.status,
-          currentPeriodStart: sub.currentPeriodStart,
-          currentPeriodEnd: sub.currentPeriodEnd,
-          trialEnd: sub.trialEnd,
-          cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-          amount: getPlanAmount(sub.planName),
-          usage
-        };
+        try {
+          const usage = await subscriptionService.getSchoolUsage(sub.schoolId);
+          return {
+            id: sub.id,
+            schoolId: sub.schoolId,
+            schoolName: sub.school?.name || 'Unknown School',
+            planName: sub.planName,
+            status: sub.status,
+            currentPeriodStart: sub.currentPeriodStart,
+            currentPeriodEnd: sub.currentPeriodEnd,
+            trialEnd: sub.trialEnd,
+            cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+            amount: getPlanAmount(sub.planName),
+            usage
+          };
+        } catch (error) {
+          console.error(`Error getting usage for subscription ${sub.id}:`, error);
+          return {
+            id: sub.id,
+            schoolId: sub.schoolId,
+            schoolName: sub.school?.name || 'Unknown School',
+            planName: sub.planName,
+            status: sub.status,
+            currentPeriodStart: sub.currentPeriodStart,
+            currentPeriodEnd: sub.currentPeriodEnd,
+            trialEnd: sub.trialEnd,
+            cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+            amount: getPlanAmount(sub.planName),
+            usage: {}
+          };
+        }
       })
     );
 

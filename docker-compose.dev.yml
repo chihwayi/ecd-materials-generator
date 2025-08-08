@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   frontend-dev:
@@ -74,9 +74,18 @@ services:
       - ecd-network
     restart: unless-stopped
 
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8001:8001"
+    networks:
+      - ecd-network
+    restart: unless-stopped
+    
 networks:
   ecd-network:
     driver: bridge
 
 volumes:
   postgres_data:
+
