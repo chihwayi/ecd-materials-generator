@@ -12,11 +12,12 @@ const {
   deleteSchool
 } = require('../controllers/users.controller');
 const { authenticateToken } = require('../middleware/auth.middleware');
+const { checkTeacherLimit } = require('../middleware/plan-limits.middleware');
 
 // User management routes (system admin only)
 router.get('/', authenticateToken, getAllUsers);
 router.get('/:id', authenticateToken, getUserById);
-router.post('/', authenticateToken, createUser);
+router.post('/', authenticateToken, checkTeacherLimit, createUser);
 router.put('/:id', authenticateToken, updateUser);
 router.delete('/:id', authenticateToken, deleteUser);
 

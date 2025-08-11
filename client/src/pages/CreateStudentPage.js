@@ -63,16 +63,42 @@ const CreateStudentPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Student</h1>
-          <p className="text-gray-600 mt-2">Add a new student to your school.</p>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-xl shadow-lg p-8 text-white mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">👶 Create Student</h1>
+              <p className="text-green-100 text-lg">Add a new student to your school</p>
+            </div>
+            <div className="text-6xl opacity-20">🎓</div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-8 py-6 rounded-t-xl border-b border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
+                <span className="text-xl text-white">✍️</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Student Registration Form</h2>
+                <p className="text-sm text-gray-600">Fill in the student details below</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Student Information */}
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-lg text-white">👶</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Student Information</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700">First Name</label>
                 <input
@@ -93,39 +119,46 @@ const CreateStudentPage = () => {
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Age</label>
+                  <input
+                    type="number"
+                    value={formData.age}
+                    onChange={(e) => setFormData({...formData, age: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    min="3"
+                    max="10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Assign to Class</label>
+                  <select
+                    required
+                    value={formData.classId}
+                    onChange={(e) => setFormData({...formData, classId: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Select Class</option>
+                    {classes.map((classItem) => (
+                      <option key={classItem.id} value={classItem.id}>
+                        {classItem.name} (Grade {classItem.grade}) - {classItem.classTeacher ? `${classItem.classTeacher.firstName} ${classItem.classTeacher.lastName}` : 'No Teacher'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Age</label>
-              <input
-                type="number"
-                value={formData.age}
-                onChange={(e) => setFormData({...formData, age: e.target.value})}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                min="3"
-                max="10"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Assign to Class</label>
-              <select
-                required
-                value={formData.classId}
-                onChange={(e) => setFormData({...formData, classId: e.target.value})}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Select Class</option>
-                {classes.map((classItem) => (
-                  <option key={classItem.id} value={classItem.id}>
-                    {classItem.name} (Grade {classItem.grade}) - {classItem.classTeacher ? `${classItem.classTeacher.firstName} ${classItem.classTeacher.lastName}` : 'No Teacher'}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Parent Information</h3>
+            {/* Parent Information */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-lg text-white">👪</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Parent Information</h3>
+              </div>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Parent Name</label>
@@ -159,22 +192,23 @@ const CreateStudentPage = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
               <button
                 type="button"
                 onClick={() => window.history.back()}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 font-medium transition-all shadow-md"
               >
-                Create Student
+                🎆 Create Student
               </button>
             </div>
           </form>
+          </div>
         </div>
       </div>
     </div>

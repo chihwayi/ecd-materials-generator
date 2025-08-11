@@ -105,7 +105,6 @@ const SubscriptionPricingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
-  const [trialActivated, setTrialActivated] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -121,17 +120,6 @@ const SubscriptionPricingPage: React.FC = () => {
       
       setPlans(plansData);
       setCurrentSubscription(subscriptionData);
-      
-      // Check if trial is already activated by checking if there's an expiry date
-      if (subscriptionData?.subscription?.currentPeriodEnd && 
-          subscriptionData.subscription.planName === 'free') {
-        const expiryDate = new Date(subscriptionData.subscription.currentPeriodEnd);
-        const defaultDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        // If expiry date is not the default 30-day future date, trial has been activated
-        if (Math.abs(expiryDate.getTime() - defaultDate.getTime()) > 24 * 60 * 60 * 1000) {
-          setTrialActivated(true);
-        }
-      }
     } catch (error) {
       console.error('Error fetching subscription data:', error);
       toast.error('Failed to load subscription plans');
@@ -193,7 +181,7 @@ const SubscriptionPricingPage: React.FC = () => {
         </div>
       </div>
     );
-  };
+  }
 
   const currentPlans = plans?.[billingCycle] || {};
 
@@ -247,13 +235,7 @@ const SubscriptionPricingPage: React.FC = () => {
 
         {/* Plans Grid - Compact Version */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {Object.entries(currentPlans).filter(([planId, plan]) => {
-            // Hide free trial if school already has active trial or subscription
-            if (plan.price === 0 && currentSubscription?.subscription?.status === 'trial') {
-              return false;
-            }
-            return true;
-          }).map(([planId, plan]) => {
+          {Object.entries(currentPlans).map(([planId, plan]) => {
             const planIcon = planId.includes('free') ? '🆓' : planId.includes('basic') ? '🚀' : planId.includes('premium') ? '⭐' : '👑';
             const planColor = planId.includes('free') ? 'gray' : planId.includes('basic') ? 'blue' : planId.includes('premium') ? 'purple' : 'indigo';
             
@@ -316,18 +298,15 @@ const SubscriptionPricingPage: React.FC = () => {
                     ) : (
                       <button
                         onClick={() => handleSubscribe(planId)}
-                        disabled={processing === planId || (plan.price === 0 && trialActivated)}
-                        className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                          (plan.price === 0 && trialActivated) ? 'bg-gray-400 text-white cursor-not-allowed' :
-                          plan.price === 0 ? 'bg-green-600 hover:bg-green-700 text-white' :
-                          planColor === 'purple' ? 'bg-purple-600 hover:bg-purple-700 text-white' :
-                          planColor === 'indigo' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' :
-                          'bg-blue-600 hover:bg-blue-700 text-white'
+                        disabled={processing === planId}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50 ${
+                          plan.price === 0 ? 'bg-green-600 hover:bg-green-700' :
+                          planColor === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
+                          planColor === 'indigo' ? 'bg-indigo-600 hover:bg-indigo-700' :
+                          'bg-blue-600 hover:bg-blue-700'
                         }`}
                       >
-                        {processing === planId ? '⏳ Processing...' : 
-                         plan.price === 0 && trialActivated ? '✅ Trial Used' :
-                         plan.price === 0 ? '🎆 Start Trial' : '🚀 Subscribe'}
+                        {processing === planId ? '⏳ Processing...' : plan.price === 0 ? '🎆 Start Trial' : '🚀 Subscribe'}
                       </button>
                     )}
                   </div>

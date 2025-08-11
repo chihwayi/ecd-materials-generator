@@ -5,6 +5,7 @@ import { adminService, adminUtils } from '../../services/admin.service.ts';
 import UserManagement from '../../components/admin/UserManagement.tsx';
 import Modal from '../../components/admin/Modal.tsx';
 import PasswordResetModal from '../../components/admin/PasswordResetModal.tsx';
+import ConfirmDialog from '../../components/common/ConfirmDialog.tsx';
 
 const UserManagementPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -28,6 +29,8 @@ const UserManagementPage: React.FC = () => {
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [isPasswordResetModalOpen, setIsPasswordResetModalOpen] = useState(false);
   const [selectedUserForReset, setSelectedUserForReset] = useState<User | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -36,8 +39,7 @@ const UserManagementPage: React.FC = () => {
     role: 'teacher',
     phoneNumber: '',
     language: 'en',
-    schoolId: '',
-    subscriptionPlan: 'free'
+    schoolId: ''
   });
 
   useEffect(() => {
@@ -65,9 +67,11 @@ const UserManagementPage: React.FC = () => {
   const fetchSchools = async () => {
     try {
       const response = await adminService.getAllSchools(1, 100);
-      setSchools(response.data);
+      setSchools(response.data || response.schools || []);
     } catch (error) {
       console.error('Fetch schools error:', error);
+      // Set fallback data if API fails
+      setSchools([]);
     }
   };
 
@@ -101,13 +105,18 @@ const UserManagementPage: React.FC = () => {
   };
 
   const handleDeleteUser = async (user: User) => {
-    if (!window.confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
-      return;
-    }
+    setSelectedUser(user);
+    setIsDeleteModalOpen(true);
+  };
 
+  const confirmDeleteUser = async () => {
+    if (!selectedUser) return;
+    
     try {
-      await adminService.deleteUser(user.id);
+      await adminService.deleteUser(selectedUser.id);
       toast.success('User deleted successfully');
+      setIsDeleteModalOpen(false);
+      setSelectedUser(null);
       fetchUsers();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete user');
@@ -115,15 +124,16 @@ const UserManagementPage: React.FC = () => {
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedUsers.length} users?`)) {
-      return;
-    }
+    setIsBulkDeleteModalOpen(true);
+  };
 
+  const confirmBulkDelete = async () => {
     try {
       await adminService.bulkDeleteUsers(selectedUsers);
       toast.success(`Successfully deleted ${selectedUsers.length} users`);
       setSelectedUsers([]);
       setShowBulkActions(false);
+      setIsBulkDeleteModalOpen(false);
       fetchUsers();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete users');
@@ -163,7 +173,7 @@ const UserManagementPage: React.FC = () => {
 
   const handleSelectAll = (selected: boolean) => {
     if (selected) {
-      setSelectedUsers(users.map(user => user.id));
+      setSelectedUsers(users?.map(user => user.id) || []);
     } else {
       setSelectedUsers([]);
     }
@@ -182,8 +192,7 @@ const UserManagementPage: React.FC = () => {
       role: 'school_admin',
       phoneNumber: '',
       language: 'en',
-      schoolId: '',
-      subscriptionPlan: 'free'
+      schoolId: ''
     });
     setSelectedUser(null);
   };
@@ -198,8 +207,7 @@ const UserManagementPage: React.FC = () => {
       role: user.role,
       phoneNumber: user.phoneNumber || '',
       language: user.language,
-      schoolId: user.schoolId || '',
-      subscriptionPlan: user.subscriptionPlan
+      schoolId: user.schoolId || ''
     });
     setIsEditModalOpen(true);
   };
@@ -215,7 +223,7 @@ const UserManagementPage: React.FC = () => {
       title: (
         <input
           type="checkbox"
-          checked={selectedUsers.length === users.length && users.length > 0}
+          checked={selectedUsers.length === (users?.length || 0) && (users?.length || 0) > 0}
           onChange={(e) => handleSelectAll(e.target.checked)}
           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
@@ -336,118 +344,157 @@ const UserManagementPage: React.FC = () => {
   ];
 
   const renderUserForm = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">First Name</label>
-          <input
-            type="text"
-            value={formData.firstName}
-            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            required
-          />
+    <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+            <span className="text-xl text-white">👤</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Personal Information</h3>
+            <p className="text-sm text-gray-600">Basic user details and contact information</p>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Last Name</label>
-          <input
-            type="text"
-            value={formData.lastName}
-            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Email</label>
-        <input
-          type="email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          required
-        />
-      </div>
-
-      {!selectedUser && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Password</label>
-          <input
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            required
-          />
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Role</label>
-          <select
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="school_admin">School Admin</option>
-            <option value="system_admin">System Admin</option>
-            <option value="delegated_admin">Delegated Admin</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Language</label>
-          <select
-            value={formData.language}
-            onChange={(e) => setFormData({ ...formData, language: e.target.value as any })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="en">English</option>
-            <option value="sn">Shona</option>
-            <option value="nd">Ndebele</option>
-          </select>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">First Name *</label>
+            <input
+              type="text"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              placeholder="Enter first name"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name *</label>
+            <input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              placeholder="Enter last name"
+              required
+            />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+            <span className="text-xl text-white">🔐</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Account Credentials</h3>
+            <p className="text-sm text-gray-600">Login credentials and security settings</p>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address *</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+              placeholder="user@example.com"
+              required
+            />
+          </div>
+          {!selectedUser && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Password *</label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+                placeholder="Enter secure password"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Minimum 6 characters recommended</p>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+            <input
+              type="tel"
+              value={formData.phoneNumber}
+              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+              placeholder="+263 xxx xxx xxx"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+            <span className="text-xl text-white">⚙️</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Role & Permissions</h3>
+            <p className="text-sm text-gray-600">User role and system access level</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">User Role *</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+            >
+              <option value="school_admin">🏫 School Admin</option>
+              <option value="system_admin">⚡ System Admin</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Language</label>
+            <select
+              value={formData.language}
+              onChange={(e) => setFormData({ ...formData, language: e.target.value as any })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+            >
+              <option value="en">🇬🇧 English</option>
+              <option value="sn">🇿🇼 Shona</option>
+              <option value="nd">🇿🇼 Ndebele</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+
+
+      <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-6 border border-orange-200">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+            <span className="text-xl text-white">🏢</span>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">School Assignment</h3>
+            <p className="text-sm text-gray-600">Associate user with a school (optional for system admins)</p>
+          </div>
+        </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">School</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">School Assignment</label>
           <select
             value={formData.schoolId ?? ''}
             onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
           >
-            <option value="">No School</option>
-            {schools.map(school => (
-              <option key={school.id} value={school.id}>{school.name}</option>
-            ))}
+            <option value="">🏢 No School (System User)</option>
+            {schools?.map(school => (
+              <option key={school.id} value={school.id}>🏫 {school.name}</option>
+            )) || []}
           </select>
+          <p className="text-xs text-gray-500 mt-2">
+            💡 System admins don't need school assignment. School admins must be assigned to a school. Teachers are created by school admins.
+          </p>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Subscription Plan</label>
-          <select
-            value={formData.subscriptionPlan}
-            onChange={(e) => setFormData({ ...formData, subscriptionPlan: e.target.value as any })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="free">Free</option>
-            <option value="teacher">Teacher</option>
-            <option value="school">School</option>
-            <option value="premium">Premium</option>
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-        <input
-          type="tel"
-          value={formData.phoneNumber}
-          onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        />
       </div>
     </div>
   );
@@ -485,7 +532,7 @@ const UserManagementPage: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-green-700">Active Users</p>
                 <p className="text-3xl font-bold text-green-900">
-                  {users.filter(u => u.isActive).length}
+                  {users?.filter(u => u.isActive).length || 0}
                 </p>
               </div>
               <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
@@ -499,7 +546,7 @@ const UserManagementPage: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-purple-700">Teachers</p>
                 <p className="text-3xl font-bold text-purple-900">
-                  {users.filter(u => u.role === 'teacher').length}
+                  {users?.filter(u => u.role === 'teacher').length || 0}
                 </p>
               </div>
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -512,7 +559,7 @@ const UserManagementPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-orange-700">Schools</p>
-                <p className="text-3xl font-bold text-orange-900">{schools.length}</p>
+                <p className="text-3xl font-bold text-orange-900">{schools?.length || 0}</p>
               </div>
               <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
                 <span className="text-2xl text-white">🏫</span>
@@ -567,63 +614,92 @@ const UserManagementPage: React.FC = () => {
         </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-to-r from-gray-500 to-blue-500 rounded-full flex items-center justify-center">
+            <span className="text-xl text-white">🔍</span>
+          </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <h3 className="text-lg font-bold text-gray-900">Filter & Search Users</h3>
+            <p className="text-sm text-gray-600">Find users by role, status, school, or search terms</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">🔍 Search Users</label>
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder="Search by name or email..."
               value={filters.search || ''}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">👥 User Role</label>
             <select
               value={filters.role || ''}
               onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
-              <option value="">All Roles</option>
-              <option value="teacher">Teacher</option>
-              <option value="school_admin">School Admin</option>
-              <option value="parent">Parent</option>
-              <option value="system_admin">System Admin</option>
+              <option value="">🌍 All Roles</option>
+              <option value="teacher">👨🏫 Teacher</option>
+              <option value="school_admin">🏫 School Admin</option>
+              <option value="parent">👨‍👩‍👧‍👦 Parent</option>
+              <option value="system_admin">⚡ System Admin</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">🟢 Account Status</label>
             <select
               value={filters.isActive?.toString() || ''}
               onChange={(e) => setFilters({ ...filters, isActive: e.target.value ? e.target.value === 'true' : undefined })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
-              <option value="">All Status</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
+              <option value="">🌍 All Status</option>
+              <option value="true">✅ Active</option>
+              <option value="false">❌ Inactive</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">School</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">🏫 School Filter</label>
             <select
               value={filters.schoolId || ''}
               onChange={(e) => setFilters({ ...filters, schoolId: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
-              <option value="">All Schools</option>
-              {schools.map(school => (
-                <option key={school.id} value={school.id}>{school.name}</option>
-              ))}
+              <option value="">🌍 All Schools</option>
+              {schools?.map(school => (
+                <option key={school.id} value={school.id}>🏫 {school.name}</option>
+              )) || []}
             </select>
           </div>
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <UserManagement />
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-8 py-6 rounded-t-xl border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
+              <span className="text-2xl text-white">📋</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Users Directory</h2>
+              <p className="text-sm text-gray-600">Manage all system users and their permissions</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-8">
+          <UserManagement 
+            users={users} 
+            loading={loading} 
+            onRefresh={fetchUsers}
+            onEdit={openEditModal}
+            onPasswordReset={openPasswordResetModal}
+            onDelete={handleDeleteUser}
+          />
+        </div>
       </div>
 
       {/* Create User Modal */}
@@ -633,7 +709,19 @@ const UserManagementPage: React.FC = () => {
           setIsCreateModalOpen(false);
           resetForm();
         }}
-        title="Create New User"
+        title={
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+              <span className="text-2xl text-white">👤</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Create New User
+              </h2>
+              <p className="text-sm text-gray-600">Add a new user to the system</p>
+            </div>
+          </div>
+        }
         footer={
           <div className="flex space-x-3">
             <button
@@ -696,6 +784,31 @@ const UserManagementPage: React.FC = () => {
           setSelectedUserForReset(null);
         }}
         selectedUser={selectedUserForReset}
+      />
+
+      <ConfirmDialog
+        isOpen={isDeleteModalOpen}
+        title="Delete User"
+        message={`Are you sure you want to delete "${selectedUser?.firstName} ${selectedUser?.lastName}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={confirmDeleteUser}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedUser(null);
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isBulkDeleteModalOpen}
+        title="Delete Multiple Users"
+        message={`Are you sure you want to delete ${selectedUsers.length} users? This action cannot be undone.`}
+        confirmText="Delete All"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setIsBulkDeleteModalOpen(false)}
       />
       </div>
     </div>

@@ -45,7 +45,11 @@ import SystemAnalyticsPage from './pages/admin/SystemAnalyticsPage.tsx';
 import SystemSettingsPage from './pages/admin/SystemSettingsPage.tsx';
 import SubscriptionPricingPage from './pages/SubscriptionPricingPage.tsx';
 import SubscriptionManagementPage from './pages/SubscriptionManagementPage.tsx';
+import SubscriptionSuccessPage from './pages/SubscriptionSuccessPage.tsx';
 import SubscriptionMonitoringPage from './pages/admin/SubscriptionMonitoringPage.tsx';
+import SubscriptionPlansPage from './pages/admin/SubscriptionPlansPage.tsx';
+import AuditLogsPage from './pages/admin/AuditLogsPage.tsx';
+import MaintenancePage from './pages/MaintenancePage.tsx';
 import { useSelector } from 'react-redux';
 import RoleProtectedRoute from './components/auth/RoleProtectedRoute.tsx';
 import { RootState } from './store';
@@ -84,6 +88,7 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/register" element={<RegisterForm />} />
+          <Route path="/maintenance" element={<MaintenancePage />} />
           <Route 
             path="/templates" 
             element={
@@ -264,6 +269,30 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
+            path="/admin/subscription-monitoring"
+            element={
+              <RoleProtectedRoute allowedRoles={['system_admin']}>
+                <SubscriptionMonitoringPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/subscription-plans"
+            element={
+              <RoleProtectedRoute allowedRoles={['system_admin']}>
+                <SubscriptionPlansPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/audit-logs"
+            element={
+              <RoleProtectedRoute allowedRoles={['system_admin']}>
+                <AuditLogsPage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
             path="/system-settings"
             element={
               <RoleProtectedRoute allowedRoles={['system_admin']}>
@@ -284,6 +313,14 @@ const AppContent: React.FC = () => {
             element={
               <ProtectedRoute>
                 <SubscriptionManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscription/success"
+            element={
+              <ProtectedRoute>
+                <SubscriptionSuccessPage />
               </ProtectedRoute>
             }
           />

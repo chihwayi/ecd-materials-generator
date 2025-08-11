@@ -3,6 +3,8 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth.middleware');
 const School = require('../models/School');
 const User = require('../models/User');
+const { Subscription, SubscriptionPayment, Class, Student } = require('../models');
+const { subscriptionPlans } = require('../config/subscription.config');
 const { logoUpload, faviconUpload, processBrandingImage } = require('../middleware/upload.middleware');
 const path = require('path');
 
@@ -248,4 +250,97 @@ router.put('/schools/:schoolId/branding', authenticateToken, async (req, res) =>
   }
 });
 
-module.exports = router; 
+// Get subscriptions overview for system admins
+router.get('/subscriptions', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'system_admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const subs = await Subscription.findAll({
+      include: [
+        { model: School, as: 'school', attributes: ['id', 'name'] },
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    // Build response rows and compute stats
+    const planPrice = (planName) => {
+      const cfg = subscriptionPlans[planName];
+      return cfg ? Number(cfg.price) : 0;
+    };
+
+    const rows = [];
+    let totalRevenue = 0;
+    let monthlyRevenue = 0;
+    let activeCount = 0;
+    let cancelledCount = 0;
+    let trialCount = 0;
+    const planDistribution = {};
+
+    for (const s of subs) {
+      const school = s.school;
+
+      // Derive status incl. trial if in trial period
+      let status = s.status;
+      const now = new Date();
+      if (s.trialEnd && new Date(s.trialEnd) > now) {
+        status = 'trial';
+      }
+
+      // Usage metrics
+      const [studentsCount, teachersCount, classesCount] = await Promise.all([
+        Student.count({ where: { schoolId: s.schoolId } }),
+        User.count({ where: { role: 'teacher', schoolId: s.schoolId } }),
+        Class.count({ where: { schoolId: s.schoolId } })
+      ]);
+
+      // Amount from plan config (monthly baseline)
+      const amount = planPrice(s.planName);
+      totalRevenue += amount;
+      monthlyRevenue += amount;
+
+      // Stats counters
+      if (status === 'active') activeCount += 1;
+      if (status === 'cancelled') cancelledCount += 1;
+      if (status === 'trial') trialCount += 1;
+      planDistribution[s.planName] = (planDistribution[s.planName] || 0) + 1;
+
+      rows.push({
+        id: s.id,
+        schoolId: s.schoolId,
+        schoolName: school ? school.name : 'Unknown',
+        planName: s.planName,
+        status,
+        currentPeriodStart: s.currentPeriodStart,
+        currentPeriodEnd: s.currentPeriodEnd,
+        trialEnd: s.trialEnd,
+        cancelAtPeriodEnd: s.cancelAtPeriodEnd,
+        amount,
+        usage: {
+          students: studentsCount,
+          teachers: teachersCount,
+          classes: classesCount
+        }
+      });
+    }
+
+    return res.json({
+      subscriptions: rows,
+      stats: {
+        totalSubscriptions: subs.length,
+        activeSubscriptions: activeCount,
+        trialSubscriptions: trialCount,
+        cancelledSubscriptions: cancelledCount,
+        totalRevenue,
+        monthlyRevenue,
+        planDistribution
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching admin subscriptions:', error);
+    res.status(500).json({ error: 'Failed to fetch subscriptions' });
+  }
+});
+
+module.exports = router;

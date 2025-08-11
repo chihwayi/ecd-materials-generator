@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 // Import routes
@@ -12,7 +14,7 @@ const userRoutes = require('./routes/users.routes');
 const materialRoutes = require('./routes/materials.routes');
 const templateRoutes = require('./routes/templates.routes');
 const assignmentRoutes = require('./routes/assignments');
-// const analyticsRoutes = require('./routes/analytics.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 const adminRoutes = require('./routes/admin.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const studentsRoutes = require('./routes/students');
@@ -25,11 +27,92 @@ const receiptsRoutes = require('./routes/receipts.routes');
 const studentServicePreferencesRoutes = require('./routes/studentServicePreferences.routes');
 const subscriptionRoutes = require('./routes/subscription.routes');
 const adminSubscriptionRoutes = require('./routes/admin.subscription.routes');
+const adminPlansRoutes = require('./routes/admin.plans.routes');
 
 // Import middleware
-const { authMiddleware } = require('./middleware/auth.middleware');
+const { authMiddleware, authenticateToken } = require('./middleware/auth.middleware');
+const { allowSubscriptionRoutes } = require('./middleware/subscription.middleware');
 const { logger } = require('./utils/logger');
 const { connectDatabase } = require('./utils/database');
+
+// Global maintenance mode state (shared with admin routes)
+const maintenanceFile = path.join(__dirname, '../maintenance.json');
+
+// Load maintenance mode from file
+let maintenanceMode = false;
+try {
+  if (fs.existsSync(maintenanceFile)) {
+    const data = fs.readFileSync(maintenanceFile, 'utf8');
+    const config = JSON.parse(data);
+    maintenanceMode = config.enabled || false;
+    console.log(`Maintenance mode loaded: ${maintenanceMode}`);
+  }
+} catch (error) {
+  console.log('Failed to load maintenance mode, defaulting to false');
+  maintenanceMode = false;
+}
+
+// Save maintenance mode to file
+const saveMaintenanceMode = (enabled) => {
+  try {
+    const config = { enabled, timestamp: new Date().toISOString() };
+    fs.writeFileSync(maintenanceFile, JSON.stringify(config, null, 2));
+  } catch (error) {
+    console.error('Failed to save maintenance mode:', error);
+  }
+};
+
+// Maintenance mode middleware
+const checkMaintenanceMode = (req, res, next) => {
+  // Skip maintenance check for admin routes, analytics, and health check
+  if (req.path.startsWith('/api/v1/admin') || 
+      req.path.startsWith('/api/v1/analytics') || 
+      req.path === '/api/v1/health' || 
+      req.path === '/api/v1/auth') {
+    return next();
+  }
+  
+  // Re-read maintenance mode from file for current state
+  let currentMaintenanceMode = false;
+  try {
+    if (fs.existsSync(maintenanceFile)) {
+      const data = fs.readFileSync(maintenanceFile, 'utf8');
+      const config = JSON.parse(data);
+      currentMaintenanceMode = config.enabled || false;
+    }
+  } catch (error) {
+    currentMaintenanceMode = false;
+  }
+  
+  if (currentMaintenanceMode) {
+    // Check if user is system admin
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+        if (decoded.role === 'system_admin') {
+          return next();
+        }
+      } catch (error) {
+        console.log('Token verification failed:', error.message);
+      }
+    }
+    
+    return res.status(503).json({ 
+      message: 'System is currently under maintenance. Please try again later.',
+      maintenanceMode: true 
+    });
+  }
+  next();
+};
+
+// Export maintenance mode functions for admin routes
+module.exports.getMaintenanceMode = () => maintenanceMode;
+module.exports.setMaintenanceMode = (mode) => { 
+  maintenanceMode = mode;
+  saveMaintenanceMode(mode);
+};
 
 // Import models to initialize associations
 require('./models');
@@ -82,8 +165,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(compression());
 
 // Static file serving for uploads
-const path = require('path');
-const fs = require('fs');
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -154,6 +235,24 @@ app.get('/api/v1/health', (req, res) => {
   });
 });
 
+// Apply maintenance mode check to non-admin API routes
+app.use('/api/v1', (req, res, next) => {
+  // Skip maintenance check for admin and analytics routes
+  if (req.path.startsWith('/admin') || req.path.startsWith('/analytics')) {
+    return next();
+  }
+  checkMaintenanceMode(req, res, next);
+});
+
+// Apply subscription middleware to protected routes
+app.use('/api/v1', (req, res, next) => {
+  // Skip for auth routes
+  if (req.path.startsWith('/auth')) {
+    return next();
+  }
+  allowSubscriptionRoutes(req, res, next);
+});
+
 // API routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
@@ -170,7 +269,7 @@ app.use('/api/v1/classes', require('./routes/classes'));
 app.use('/api/v1/password-recovery', require('./routes/password-recovery'));
 app.use('/api/v1/parent', require('./routes/parent'));
 app.use('/api/v1/school', require('./routes/school-settings'));
-app.use('/api/v1/analytics', require('./routes/analytics'));
+app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/marketplace', require('./routes/marketplace'));
 app.use('/api/v1/communication', communicationRoutes);
 app.use('/api/v1/fees', feeRoutes);
@@ -181,6 +280,7 @@ app.use('/api/v1/receipts', receiptsRoutes);
 app.use('/api/v1/student-service-preferences', studentServicePreferencesRoutes);
 app.use('/api/v1/subscription', subscriptionRoutes);
 app.use('/api/v1/admin', adminSubscriptionRoutes);
+app.use('/api/v1/admin/plans', adminPlansRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

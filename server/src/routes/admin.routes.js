@@ -1,7 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth.middleware');
-const { User, School, Material, Assignment } = require('../models');
+const { 
+  User, 
+  School, 
+  Material, 
+  Assignment, 
+  Student, 
+  Class, 
+  Template, 
+  Progress, 
+  StudentAssignment, 
+  Message, 
+  FeeStructure, 
+  StudentFee, 
+  FeePayment, 
+  Signature, 
+  FinancialReport, 
+  Receipt, 
+  StudentServicePreference, 
+  Subscription, 
+  SubscriptionPayment,
+  AuditLog,
+  SystemNotification
+} = require('../models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
@@ -19,6 +41,17 @@ const adminOnly = (req, res, next) => {
   });
 };
 
+// Maintenance mode middleware
+const checkMaintenanceMode = (req, res, next) => {
+  if (maintenanceMode && req.user && req.user.role !== 'system_admin') {
+    return res.status(503).json({ 
+      message: 'System is currently under maintenance. Please try again later.',
+      maintenanceMode: true 
+    });
+  }
+  next();
+};
+
 // Get all schools with branding data
 router.get('/schools', authenticateToken, async (req, res) => {
   try {
@@ -30,8 +63,8 @@ router.get('/schools', authenticateToken, async (req, res) => {
       include: [
         {
           model: User,
-          as: 'users',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'role']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'role'],
+          required: false
         }
       ]
     });
@@ -206,6 +239,41 @@ router.post('/schools/:schoolId/favicon', authenticateToken, faviconUpload, asyn
   } catch (error) {
     console.error('Error uploading favicon:', error);
     res.status(500).json({ error: 'Failed to upload favicon' });
+  }
+});
+
+// Delete school
+router.delete('/schools/:id', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'system_admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const school = await School.findByPk(req.params.id);
+    if (!school) {
+      return res.status(404).json({ error: 'School not found' });
+    }
+
+    // Delete related records first to avoid foreign key constraints
+    await Promise.all([
+      User.destroy({ where: { schoolId: req.params.id } }),
+      Student.destroy({ where: { schoolId: req.params.id } }),
+      Class.destroy({ where: { schoolId: req.params.id } }),
+      Assignment.destroy({ where: { schoolId: req.params.id } }),
+      FeeStructure.destroy({ where: { schoolId: req.params.id } }),
+      Signature.destroy({ where: { schoolId: req.params.id } }),
+      FinancialReport.destroy({ where: { schoolId: req.params.id } }),
+      Receipt.destroy({ where: { schoolId: req.params.id } }),
+      StudentServicePreference.destroy({ where: { school_id: req.params.id } }),
+      Subscription.destroy({ where: { schoolId: req.params.id } }),
+      SubscriptionPayment.destroy({ where: { schoolId: req.params.id } })
+    ]);
+
+    await school.destroy();
+    res.json({ message: 'School and all related data deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting school:', error);
+    res.status(500).json({ error: 'Failed to delete school: ' + error.message });
   }
 });
 
@@ -400,17 +468,8 @@ router.get('/health', adminOnly, async (req, res) => {
 // System settings endpoints
 router.get('/settings', adminOnly, async (req, res) => {
   try {
-    // Mock settings - in production, fetch from settings table
-    const settings = {
-      maintenanceMode: false,
-      registrationEnabled: true,
-      maxFileSize: 10485760, // 10MB
-      allowedFileTypes: ['pdf', 'doc', 'docx', 'jpg', 'png', 'gif'],
-      systemName: 'ECD Materials Generator',
-      supportEmail: 'support@ecdmaterials.com'
-    };
-
-    res.json(settings);
+    const maintenanceMode = getMaintenanceMode();
+    res.json({ ...systemSettings, maintenanceMode });
   } catch (error) {
     console.error('Get settings error:', error);
     res.status(500).json({ message: 'Failed to fetch settings' });
@@ -419,12 +478,19 @@ router.get('/settings', adminOnly, async (req, res) => {
 
 router.put('/settings', adminOnly, async (req, res) => {
   try {
-    const updates = req.body;
+    const { defaultLanguage, sessionTimeout, enableRegistration, enableNotifications } = req.body;
     
-    // In production, update settings in database
-    console.log('Updating system settings:', updates);
+    // Update system settings
+    systemSettings = {
+      defaultLanguage: defaultLanguage || systemSettings.defaultLanguage,
+      sessionTimeout: sessionTimeout || systemSettings.sessionTimeout,
+      enableRegistration: enableRegistration !== undefined ? enableRegistration : systemSettings.enableRegistration,
+      enableNotifications: enableNotifications !== undefined ? enableNotifications : systemSettings.enableNotifications
+    };
     
-    res.json({ message: 'Settings updated successfully', settings: updates });
+    console.log('System settings updated:', systemSettings);
+    
+    res.json({ message: 'Settings updated successfully', settings: systemSettings });
   } catch (error) {
     console.error('Update settings error:', error);
     res.status(500).json({ message: 'Failed to update settings' });
@@ -498,12 +564,47 @@ Demo School,456 Oak Ave,info@demoschool.com,+263987654321,school,2024-01-02`;
 });
 
 // Maintenance endpoints
+// Persistent maintenance mode using file system
+const fs = require('fs');
+const maintenanceFile = path.join(__dirname, '../../maintenance.json');
+
+// Helper functions for persistent maintenance mode
+const getMaintenanceMode = () => {
+  try {
+    if (fs.existsSync(maintenanceFile)) {
+      const data = fs.readFileSync(maintenanceFile, 'utf8');
+      const config = JSON.parse(data);
+      return config.enabled || false;
+    }
+  } catch (error) {
+    console.error('Failed to read maintenance mode:', error);
+  }
+  return false;
+};
+
+const setMaintenanceMode = (mode) => {
+  try {
+    const config = { enabled: mode, timestamp: new Date().toISOString() };
+    fs.writeFileSync(maintenanceFile, JSON.stringify(config, null, 2));
+    console.log(`Maintenance mode set to: ${mode}`);
+  } catch (error) {
+    console.error('Failed to save maintenance mode:', error);
+  }
+};
+
+let systemSettings = {
+  defaultLanguage: 'en',
+  sessionTimeout: 60,
+  enableRegistration: true,
+  enableNotifications: true
+};
+
 router.post('/maintenance/enable', adminOnly, async (req, res) => {
   try {
-    // In production, set maintenance mode flag
-    console.log('Enabling maintenance mode');
+    setMaintenanceMode(true);
+    console.log('Maintenance mode enabled');
     
-    res.json({ message: 'Maintenance mode enabled' });
+    res.json({ message: 'Maintenance mode enabled', maintenanceMode: true });
   } catch (error) {
     console.error('Enable maintenance error:', error);
     res.status(500).json({ message: 'Failed to enable maintenance mode' });
@@ -512,13 +613,22 @@ router.post('/maintenance/enable', adminOnly, async (req, res) => {
 
 router.post('/maintenance/disable', adminOnly, async (req, res) => {
   try {
-    // In production, unset maintenance mode flag
-    console.log('Disabling maintenance mode');
+    setMaintenanceMode(false);
+    console.log('Maintenance mode disabled');
     
-    res.json({ message: 'Maintenance mode disabled' });
+    res.json({ message: 'Maintenance mode disabled', maintenanceMode: false });
   } catch (error) {
     console.error('Disable maintenance error:', error);
     res.status(500).json({ message: 'Failed to disable maintenance mode' });
+  }
+});
+
+router.get('/maintenance/status', adminOnly, async (req, res) => {
+  try {
+    res.json({ maintenanceMode: getMaintenanceMode() });
+  } catch (error) {
+    console.error('Get maintenance status error:', error);
+    res.status(500).json({ message: 'Failed to get maintenance status' });
   }
 });
 
@@ -531,6 +641,235 @@ router.post('/cache/clear', adminOnly, async (req, res) => {
   } catch (error) {
     console.error('Clear cache error:', error);
     res.status(500).json({ message: 'Failed to clear cache' });
+  }
+});
+
+// Get audit logs
+router.get('/audit-logs', adminOnly, async (req, res) => {
+  try {
+    const { page = 1, limit = 50, action, resource } = req.query;
+    const offset = (page - 1) * limit;
+    
+    const where = {};
+    if (action) where.action = action;
+    if (resource) where.resource = resource;
+    
+    const { count, rows } = await AuditLog.findAndCountAll({
+      where,
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['firstName', 'lastName', 'email'],
+        required: false
+      }],
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit),
+      offset
+    });
+    
+    res.json({
+      logs: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get audit logs error:', error);
+    res.status(500).json({ message: 'Failed to fetch audit logs' });
+  }
+});
+
+// Get system notifications
+router.get('/notifications', authenticateToken, async (req, res) => {
+  try {
+    const NotificationService = require('../services/notification.service');
+    const notifications = await NotificationService.getNotifications(req.user.role);
+    res.json({ notifications });
+  } catch (error) {
+    console.error('Get notifications error:', error);
+    res.status(500).json({ message: 'Failed to fetch notifications' });
+  }
+});
+
+// Mark notification as read
+router.put('/notifications/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const NotificationService = require('../services/notification.service');
+    await NotificationService.markAsRead(req.params.id);
+    res.json({ message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Mark notification as read error:', error);
+    res.status(500).json({ message: 'Failed to mark notification as read' });
+  }
+});
+
+// Bulk user operations
+router.post('/users/bulk-import', adminOnly, async (req, res) => {
+  try {
+    const { users } = req.body;
+    const bcrypt = require('bcrypt');
+    const results = { success: 0, failed: 0, errors: [] };
+    
+    for (const userData of users) {
+      try {
+        const hashedPassword = await bcrypt.hash(userData.password || 'temp123', 12);
+        await User.create({
+          ...userData,
+          password: hashedPassword,
+          isActive: true
+        });
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({ email: userData.email, error: error.message });
+      }
+    }
+    
+    res.json({ message: 'Bulk import completed', results });
+  } catch (error) {
+    console.error('Bulk import error:', error);
+    res.status(500).json({ message: 'Failed to import users' });
+  }
+});
+
+// System announcements
+router.post('/announcements', adminOnly, async (req, res) => {
+  try {
+    const { title, message, targetRole = 'all' } = req.body;
+    const NotificationService = require('../services/notification.service');
+    
+    await NotificationService.createNotification(
+      'info',
+      title,
+      message,
+      { isAnnouncement: true },
+      targetRole
+    );
+    
+    res.json({ message: 'Announcement sent successfully' });
+  } catch (error) {
+    console.error('Send announcement error:', error);
+    res.status(500).json({ message: 'Failed to send announcement' });
+  }
+});
+
+// Get subscription monitoring data
+router.get('/subscriptions', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'system_admin' && req.user.role !== 'delegated_admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { SubscriptionPlan, Student, Class } = require('../models');
+    
+    // Get all schools with their subscription data
+    const schools = await School.findAll({
+      include: [{
+        model: User,
+        attributes: ['id', 'role'],
+        separate: true
+      }]
+    });
+    
+    const subscriptions = await Promise.all(schools.map(async (school) => {
+      const users = school.Users || [];
+      const teacherCount = users.filter(u => u.role === 'teacher').length;
+      const adminCount = users.filter(u => u.role === 'school_admin').length;
+      
+      const [studentCount, classCount] = await Promise.all([
+        Student.count({ where: { schoolId: school.id } }),
+        Class.count({ where: { schoolId: school.id } })
+      ]);
+      
+      const plan = await SubscriptionPlan.findOne({ where: { planId: school.subscriptionPlan } });
+      
+      return {
+        id: school.id,
+        schoolId: school.id,
+        schoolName: school.name,
+        planName: plan?.name || school.subscriptionPlan,
+        status: school.subscriptionStatus,
+        currentPeriodStart: school.createdAt,
+        currentPeriodEnd: school.subscriptionExpiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        trialEnd: school.subscriptionPlan === 'free_trial' ? school.subscriptionExpiresAt : null,
+        cancelAtPeriodEnd: school.subscriptionStatus === 'cancelled',
+        amount: plan?.price || 0,
+        usage: {
+          students: studentCount,
+          teachers: teacherCount + adminCount,
+          classes: classCount
+        }
+      };
+    }));
+    
+    // Calculate stats
+    const stats = {
+      totalSubscriptions: subscriptions.length,
+      activeSubscriptions: subscriptions.filter(s => s.status === 'active').length,
+      trialSubscriptions: subscriptions.filter(s => s.planName.toLowerCase().includes('trial') || s.planName.toLowerCase().includes('free')).length,
+      cancelledSubscriptions: subscriptions.filter(s => s.status === 'cancelled').length,
+      totalRevenue: req.user.role === 'system_admin' ? subscriptions.reduce((sum, s) => sum + s.amount, 0) : 0,
+      monthlyRevenue: req.user.role === 'system_admin' ? subscriptions.filter(s => s.status === 'active').reduce((sum, s) => sum + s.amount, 0) : 0,
+      planDistribution: subscriptions.reduce((acc, s) => {
+        acc[s.planName] = (acc[s.planName] || 0) + 1;
+        return acc;
+      }, {})
+    };
+    
+    if (req.user.role === 'delegated_admin') {
+      subscriptions.forEach(sub => { sub.amount = 0; });
+    }
+    
+    res.json({ subscriptions, stats });
+  } catch (error) {
+    console.error('Get subscriptions error:', error);
+    res.status(500).json({ message: 'Failed to fetch subscription data' });
+  }
+});
+
+// Complete database backup endpoint
+router.get('/backup/complete', adminOnly, async (req, res) => {
+  try {
+    console.log('Starting complete database backup...');
+    
+    // Get counts for metadata without loading all data
+    const [userCount, schoolCount, studentCount, classCount, materialCount] = await Promise.all([
+      User.count(),
+      School.count(),
+      Student.count(),
+      Class.count(),
+      Material.count()
+    ]);
+    
+    // Fetch essential data only (without large includes)
+    const [users, schools] = await Promise.all([
+      User.findAll({ attributes: ['id', 'email', 'firstName', 'lastName', 'role', 'createdAt'] }),
+      School.findAll({ attributes: ['id', 'name', 'contactEmail', 'createdAt'] })
+    ]);
+    
+    const backupData = {
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      database: {
+        users,
+        schools
+      },
+      metadata: {
+        totalTables: 19,
+        totalRecords: userCount + schoolCount + studentCount + classCount + materialCount,
+        backupSize: 'Essential Data Only',
+        exportedBy: req.user.email,
+        note: 'Simplified backup to prevent memory issues'
+      }
+    };
+    
+    res.json(backupData);
+  } catch (error) {
+    console.error('Complete database backup error:', error);
+    res.status(500).json({ message: 'Failed to create complete backup' });
   }
 });
 
@@ -570,7 +909,7 @@ router.post('/users/reset-password', adminOnly, async (req, res) => {
       message: 'Password reset successfully',
       temporaryPassword: newPassword ? undefined : password,
       userEmail: targetUser.email,
-      userName: `${targetUser.first_name} ${targetUser.last_name}`
+      userName: `${targetUser.firstName} ${targetUser.lastName}`
     });
   } catch (error) {
     console.error('Error resetting password:', error);
@@ -590,16 +929,16 @@ router.get('/users/reset-password', adminOnly, async (req, res) => {
 
     if (search) {
       whereClause[Op.or] = [
-        { first_name: { [Op.iLike]: `%${search}%` } },
-        { last_name: { [Op.iLike]: `%${search}%` } },
+        { firstName: { [Op.iLike]: `%${search}%` } },
+        { lastName: { [Op.iLike]: `%${search}%` } },
         { email: { [Op.iLike]: `%${search}%` } }
       ];
     }
 
     const users = await User.findAll({
       where: whereClause,
-      attributes: ['id', 'first_name', 'last_name', 'email', 'role', 'is_active'],
-      order: [['first_name', 'ASC']],
+      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive'],
+      order: [['firstName', 'ASC']],
       limit: 100
     });
 
@@ -645,8 +984,8 @@ router.get('/users', adminOnly, async (req, res) => {
       include: [
         {
           model: School,
-          as: 'school',
-          attributes: ['id', 'name']
+          attributes: ['id', 'name'],
+          required: false
         }
       ],
       order: [['createdAt', 'DESC']],
@@ -771,6 +1110,11 @@ router.delete('/users/:id', adminOnly, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Prevent delegated admin from deleting system admin accounts
+    if (req.user.role === 'delegated_admin' && user.role === 'system_admin') {
+      return res.status(403).json({ error: 'Cannot delete system administrator accounts' });
+    }
+
     await user.destroy();
 
     res.json({ message: 'User deleted successfully' });
@@ -851,8 +1195,8 @@ router.get('/users/export', adminOnly, async (req, res) => {
       include: [
         {
           model: School,
-          as: 'school',
-          attributes: ['name']
+          attributes: ['name'],
+          required: false
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -867,7 +1211,7 @@ router.get('/users/export', adminOnly, async (req, res) => {
           user.lastName,
           user.email,
           user.role,
-          user.school?.name || 'N/A',
+          user.School?.name || 'N/A',
           user.isActive ? 'Active' : 'Inactive',
           user.createdAt
         ].join(','))
@@ -882,6 +1226,64 @@ router.get('/users/export', adminOnly, async (req, res) => {
   } catch (error) {
     console.error('Error exporting users:', error);
     res.status(500).json({ error: 'Failed to export users' });
+  }
+});
+
+router.post('/users/:id/reset-password', adminOnly, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { newPassword } = req.body;
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate new password if not provided
+    const password = newPassword || crypto.randomBytes(8).toString('hex');
+    
+    // Use the model's update method to trigger the beforeUpdate hook
+    await user.update({ password });
+
+    res.json({ 
+      message: 'Password reset successfully',
+      temporaryPassword: newPassword ? undefined : password,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`
+    });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+router.get('/users/:email/debug', adminOnly, async (req, res) => {
+  try {
+    const { email } = req.params;
+    const user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      return res.json({ found: false, message: 'User not found' });
+    }
+
+    res.json({
+      found: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isActive: user.isActive,
+        schoolId: user.schoolId,
+        createdAt: user.createdAt,
+        hasPassword: !!user.password,
+        passwordLength: user.password ? user.password.length : 0
+      }
+    });
+  } catch (error) {
+    console.error('Debug user error:', error);
+    res.status(500).json({ error: 'Failed to debug user' });
   }
 });
 

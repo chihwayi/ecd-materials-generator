@@ -1,175 +1,93 @@
-const subscriptionService = require('../services/subscription.service');
+const { School, SubscriptionPlan } = require('../models');
 
-// Middleware to check if a specific feature is enabled for the school
-const requireFeature = (feature) => {
-  return async (req, res, next) => {
-    try {
-      const schoolId = req.user.schoolId;
-      
-      if (!schoolId) {
-        return res.status(403).json({ 
-          error: 'Access denied',
-          message: 'School ID not found'
-        });
-      }
-
-      const access = await subscriptionService.canAccessFeature(schoolId, feature);
-      
-      if (!access.allowed) {
-        return res.status(403).json({
-          error: 'Feature not available',
-          message: access.reason || 'This feature is not included in your current plan',
-          feature,
-          upgradeRequired: true
-        });
-      }
-
-      next();
-    } catch (error) {
-      console.error('Error checking feature access:', error);
-      return res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to verify feature access'
-      });
-    }
-  };
-};
-
-// Middleware to check if school has active subscription
-const requireActiveSubscription = async (req, res, next) => {
+// Check if school's subscription is active
+const checkSubscriptionStatus = async (req, res, next) => {
   try {
-    const schoolId = req.user.schoolId;
+    const schoolId = req.user?.schoolId;
+    if (!schoolId || !req.user) return next();
     
-    if (!schoolId) {
-      return res.status(403).json({ 
-        error: 'Access denied',
-        message: 'School ID not found'
+    // Only allow true system admins (no schoolId) to bypass
+    if (req.user.role === 'system_admin' && !req.user.schoolId) return next();
+
+    const school = await School.findByPk(schoolId);
+    if (!school) return res.status(404).json({ error: 'School not found' });
+
+    // Check if school trial is not activated (no expiry date set)
+    if (school.subscriptionPlan === 'free' && !school.subscriptionExpiresAt) {
+      // Only allow access to activation and profile routes - NO dashboard access
+      const allowedInactivePaths = [
+        '/analytics/school/activate-trial',
+        '/users/profile/me',
+        '/auth/logout'
+      ];
+      
+      const isAllowed = allowedInactivePaths.some(path => req.path.includes(path));
+      
+      if (!isAllowed) {
+        return res.status(403).json({
+          error: 'Trial not activated',
+          message: 'Please activate your free trial to access the system.',
+          schoolInactive: true,
+          trialNotActivated: true,
+          redirectTo: '/subscription/pricing'
+        });
+      }
+    }
+
+    // Check if subscription is expired
+    if (school.subscriptionStatus === 'expired') {
+      return res.status(403).json({
+        error: 'Subscription expired',
+        message: 'Your subscription has expired. Please renew to continue using the system.',
+        subscriptionExpired: true,
+        redirectTo: '/subscription/pricing'
       });
     }
 
-    const subscription = await subscriptionService.getSchoolSubscription(schoolId);
-    
-    if (!subscription || subscription.status !== 'active') {
-      return res.status(403).json({
-        error: 'Subscription required',
-        message: 'An active subscription is required to access this feature',
-        upgradeRequired: true
-      });
+    // Check if in grace period
+    if (school.subscriptionStatus === 'grace_period') {
+      const daysLeft = Math.ceil((new Date(school.subscriptionExpiresAt) - new Date()) / (1000 * 60 * 60 * 24));
+      req.subscriptionWarning = {
+        type: 'grace_period',
+        message: `Your subscription expires in ${daysLeft} days. Please renew to avoid service interruption.`,
+        daysLeft
+      };
     }
 
     next();
   } catch (error) {
-    console.error('Error checking subscription status:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to verify subscription status'
-    });
-  }
-};
-
-// Middleware to check usage limits
-const checkUsageLimits = async (req, res, next) => {
-  try {
-    const schoolId = req.user.schoolId;
-    
-    if (!schoolId) {
-      return res.status(403).json({ 
-        error: 'Access denied',
-        message: 'School ID not found'
-      });
-    }
-
-    const limits = await subscriptionService.checkUsageLimits(schoolId);
-    
-    if (!limits.allowed) {
-      return res.status(403).json({
-        error: 'Usage limit exceeded',
-        message: limits.reason || 'You have reached your plan limits',
-        limits: limits.limits,
-        upgradeRequired: true
-      });
-    }
-
-    // Add usage info to request for potential use
-    req.usageInfo = limits;
+    console.error('Subscription check error:', error);
     next();
-  } catch (error) {
-    console.error('Error checking usage limits:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to verify usage limits'
-    });
   }
 };
 
-// Middleware to check specific usage limits (e.g., student count)
-const checkSpecificLimit = (metric) => {
-  return async (req, res, next) => {
-    try {
-      const schoolId = req.user.schoolId;
-      
-      if (!schoolId) {
-        return res.status(403).json({ 
-          error: 'Access denied',
-          message: 'School ID not found'
-        });
-      }
-
-      const limits = await subscriptionService.checkUsageLimits(schoolId);
-      
-      if (!limits.allowed) {
-        return res.status(403).json({
-          error: 'Usage limit exceeded',
-          message: limits.reason || 'You have reached your plan limits',
-          upgradeRequired: true
-        });
-      }
-
-      // Check specific metric
-      const metricLimit = limits.limits[metric];
-      if (metricLimit && !metricLimit.allowed) {
-        return res.status(403).json({
-          error: `${metric} limit exceeded`,
-          message: `You have reached your ${metric} limit. Please upgrade your plan.`,
-          current: metricLimit.current,
-          limit: metricLimit.limit,
-          upgradeRequired: true
-        });
-      }
-
-      next();
-    } catch (error) {
-      console.error('Error checking specific usage limit:', error);
-      return res.status(500).json({
-        error: 'Internal server error',
-        message: 'Failed to verify usage limits'
-      });
-    }
-  };
-};
-
-// Helper function to get subscription info for response
-const getSubscriptionInfo = async (schoolId) => {
-  try {
-    const summary = await subscriptionService.getSubscriptionSummary(schoolId);
-    return {
-      plan: summary.subscription?.planName || 'free',
-      status: summary.subscription?.status || 'active',
-      isActive: summary.isActive,
-      daysUntilExpiry: summary.daysUntilExpiry,
-      usage: summary.usage,
-      limits: summary.limits
-    };
-  } catch (error) {
-    console.error('Error getting subscription info:', error);
-    return null;
+// Allow only subscription-related routes for expired accounts
+const allowSubscriptionRoutes = (req, res, next) => {
+  // Skip for true system admins (no schoolId) and auth routes
+  if (!req.user || req.path.startsWith('/auth')) {
+    return next();
   }
+  
+  // Only allow true system admins (no schoolId) to bypass
+  if (req.user.role === 'system_admin' && !req.user.schoolId) {
+    return next();
+  }
+  
+  const allowedPaths = [
+    '/subscription/pricing',
+    '/subscription/manage',
+    '/auth/logout',
+    '/users/profile/me'
+  ];
+  
+  if (allowedPaths.some(path => req.path.includes(path))) {
+    return next();
+  }
+  
+  return checkSubscriptionStatus(req, res, next);
 };
 
 module.exports = {
-  requireFeature,
-  requireActiveSubscription,
-  checkUsageLimits,
-  checkSpecificLimit,
-  getSubscriptionInfo
-}; 
+  checkSubscriptionStatus,
+  allowSubscriptionRoutes
+};

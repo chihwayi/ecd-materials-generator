@@ -116,6 +116,19 @@ const SystemAdminDashboard = ({ user }) => {
     }
   };
 
+  // Safely render user names coming from the API which may be a string or an object
+  const displayUser = (u) => {
+    if (!u) return 'Unknown';
+    if (typeof u === 'string') return u;
+    if (typeof u === 'object') {
+      const first = u.firstName || '';
+      const last = u.lastName || '';
+      const name = `${first} ${last}`.trim();
+      return name || u.email || u.id || 'Unknown';
+    }
+    return 'Unknown';
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -311,7 +324,7 @@ const SystemAdminDashboard = ({ user }) => {
               <div className="flex-1">
                 <p className="text-sm text-gray-900">{activity.description}</p>
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs text-gray-500">by {activity.user}</span>
+                  <span className="text-xs text-gray-500">by {displayUser(activity.user)}</span>
                   <span className="text-xs text-gray-400">
                     {new Date(activity.timestamp).toLocaleString()}
                   </span>

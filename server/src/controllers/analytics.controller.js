@@ -122,20 +122,28 @@ const getUserGrowthAnalytics = async (req, res) => {
         dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
 
-    const userGrowth = await User.findAll({
-      attributes: [
-        [User.sequelize.fn('DATE', User.sequelize.col('createdAt')), 'date'],
-        [User.sequelize.fn('COUNT', User.sequelize.col('id')), 'count']
-      ],
+    // Simplified query to avoid potential SQL issues
+    const users = await User.findAll({
+      attributes: ['createdAt'],
       where: {
         createdAt: {
           [Op.gte]: dateFilter
         }
       },
-      group: [User.sequelize.fn('DATE', User.sequelize.col('createdAt'))],
-      order: [[User.sequelize.fn('DATE', User.sequelize.col('createdAt')), 'ASC']],
-      raw: true
+      order: [['createdAt', 'ASC']]
     });
+
+    // Process data in JavaScript to avoid SQL function issues
+    const growthData = {};
+    users.forEach(user => {
+      const date = user.createdAt.toISOString().split('T')[0];
+      growthData[date] = (growthData[date] || 0) + 1;
+    });
+
+    const userGrowth = Object.entries(growthData).map(([date, count]) => ({
+      date,
+      count
+    }));
 
     res.json(userGrowth);
   } catch (error) {
@@ -147,6 +155,8 @@ const getUserGrowthAnalytics = async (req, res) => {
 // Get school analytics
 const getSchoolAnalytics = async (req, res) => {
   try {
+    const { SubscriptionPlan, Student, Class } = require('../models');
+    
     const schools = await School.findAll({
       include: [{
         model: User,
@@ -155,12 +165,25 @@ const getSchoolAnalytics = async (req, res) => {
       }]
     });
 
-    const schoolAnalytics = schools.map(school => {
+    const schoolAnalytics = await Promise.all(schools.map(async school => {
       const users = school.Users || [];
       const activeUsers = users.filter(user => user.isActive).length;
       const teacherCount = users.filter(user => user.role === 'teacher').length;
       const adminCount = users.filter(user => user.role === 'school_admin').length;
       const parentCount = users.filter(user => user.role === 'parent').length;
+      
+      // Get actual counts
+      const [studentCount, classCount] = await Promise.all([
+        Student.count({ where: { schoolId: school.id } }),
+        Class.count({ where: { schoolId: school.id } })
+      ]);
+      
+      // Get subscription plan limits using utility function
+      const { getSchoolLimits } = require('../utils/subscription.utils');
+      const limits = await getSchoolLimits(school);
+      const maxTeachers = limits.maxTeachers;
+      const maxStudents = limits.maxStudents;
+      const maxClasses = limits.maxClasses;
 
       return {
         id: school.id,
@@ -172,11 +195,27 @@ const getSchoolAnalytics = async (req, res) => {
         teacherCount,
         adminCount,
         parentCount,
-        utilizationRate: school.maxTeachers > 0 ? (teacherCount / school.maxTeachers) * 100 : 0,
+        studentCount,
+        classCount,
+        limits: {
+          maxTeachers,
+          maxStudents,
+          maxClasses
+        },
+        utilization: {
+          teachers: maxTeachers > 0 ? ((teacherCount + adminCount) / maxTeachers) * 100 : 0,
+          students: maxStudents > 0 ? (studentCount / maxStudents) * 100 : 0,
+          classes: maxClasses > 0 ? (classCount / maxClasses) * 100 : 0
+        },
+        warnings: {
+          teachersNearLimit: maxTeachers > 0 && ((teacherCount + adminCount) / maxTeachers) >= 0.9,
+          studentsNearLimit: maxStudents > 0 && (studentCount / maxStudents) >= 0.9,
+          classesNearLimit: maxClasses > 0 && (classCount / maxClasses) >= 0.9
+        },
         isActive: school.isActive,
         createdAt: school.createdAt
       };
-    });
+    }));
 
     res.json(schoolAnalytics);
   } catch (error) {
@@ -447,6 +486,177 @@ const getSystemLogs = async (req, res) => {
   }
 };
 
+// Get subscription warnings for school
+const getSubscriptionWarnings = async (req, res) => {
+  try {
+    const SubscriptionService = require('../services/subscription.service');
+    const schoolId = req.user.schoolId;
+    
+    if (!schoolId) {
+      return res.status(400).json({ message: 'School ID not found' });
+    }
+    
+    const warnings = await SubscriptionService.getSubscriptionWarnings(schoolId);
+    res.json({ warnings });
+  } catch (error) {
+    console.error('Get subscription warnings error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get school usage for school admin
+const getSchoolUsage = async (req, res) => {
+  try {
+    const { SubscriptionPlan, Student, Class } = require('../models');
+    const schoolId = req.user.schoolId;
+    
+    if (!schoolId) {
+      return res.status(400).json({ message: 'School ID not found' });
+    }
+    
+    const school = await School.findByPk(schoolId);
+    if (!school) {
+      return res.status(404).json({ message: 'School not found' });
+    }
+    
+    // Get actual counts (include school_admin in teacher count)
+    const [teacherCount, adminCount, studentCount, classCount] = await Promise.all([
+      User.count({ where: { schoolId, role: 'teacher' } }),
+      User.count({ where: { schoolId, role: 'school_admin' } }),
+      Student.count({ where: { schoolId } }),
+      Class.count({ where: { schoolId } })
+    ]);
+    
+    const totalTeacherUsers = teacherCount + adminCount;
+    
+    // Map school subscription plan to SubscriptionPlan planId
+    const planMapping = {
+      'free': 'free_trial',
+      'basic': 'basic',
+      'premium': 'professional'
+    };
+    
+    const planId = planMapping[school.subscriptionPlan] || 'free_trial';
+    
+    // Get subscription plan limits
+    const plan = await SubscriptionPlan.findOne({ where: { planId } });
+    if (!plan) {
+      // Fallback to default limits if plan not found
+      const maxTeachers = 5;
+      const maxStudents = 50;
+      const maxClasses = 10;
+      
+      const teacherPercentage = maxTeachers > 0 ? Math.round((totalTeacherUsers / maxTeachers) * 100) : 0;
+      const studentPercentage = maxStudents > 0 ? Math.round((studentCount / maxStudents) * 100) : 0;
+      const classPercentage = maxClasses > 0 ? Math.round((classCount / maxClasses) * 100) : 0;
+      
+      const warnings = [];
+      if (teacherPercentage >= 90) warnings.push({ type: 'teachers', message: 'Teacher limit almost reached', percentage: teacherPercentage });
+      if (studentPercentage >= 90) warnings.push({ type: 'students', message: 'Student limit almost reached', percentage: studentPercentage });
+      if (classPercentage >= 90) warnings.push({ type: 'classes', message: 'Class limit almost reached', percentage: classPercentage });
+      
+      const daysRemaining = school.subscriptionExpiresAt ? Math.max(0, Math.ceil((new Date(school.subscriptionExpiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))) : 0;
+      
+      return res.json({
+        plan: {
+          name: 'Free Trial',
+          planId: school.subscriptionPlan,
+          daysRemaining: school.subscriptionExpiresAt ? daysRemaining : null,
+          canActivate: !school.subscriptionExpiresAt
+        },
+        usage: {
+          teachers: {
+            current: totalTeacherUsers,
+            limit: maxTeachers,
+            percentage: teacherPercentage,
+            unlimited: false
+          },
+          students: {
+            current: studentCount,
+            limit: maxStudents,
+            percentage: studentPercentage,
+            unlimited: false
+          },
+          classes: {
+            current: classCount,
+            limit: maxClasses,
+            percentage: classPercentage,
+            unlimited: false
+          }
+        },
+        warnings,
+        features: {
+          materials: true,
+          templates: true,
+          assignments: true,
+          financeModule: false,
+          advancedAnalytics: false,
+          customBranding: false
+        }
+      });
+    }
+    
+    const maxTeachers = plan.maxTeachers;
+    const maxStudents = plan.maxStudents;
+    const maxClasses = plan.maxClasses;
+    
+    const teacherPercentage = maxTeachers > 0 ? Math.round((totalTeacherUsers / maxTeachers) * 100) : 0;
+    const studentPercentage = maxStudents > 0 ? Math.round((studentCount / maxStudents) * 100) : 0;
+    const classPercentage = maxClasses > 0 ? Math.round((classCount / maxClasses) * 100) : 0;
+    
+    const warnings = [];
+    if (teacherPercentage >= 90) warnings.push({ type: 'teachers', message: 'Teacher limit almost reached', percentage: teacherPercentage });
+    if (studentPercentage >= 90) warnings.push({ type: 'students', message: 'Student limit almost reached', percentage: studentPercentage });
+    if (classPercentage >= 90) warnings.push({ type: 'classes', message: 'Class limit almost reached', percentage: classPercentage });
+    
+    // Calculate days remaining based on subscription expiry
+    const daysRemaining = school.subscriptionExpiresAt ? Math.max(0, Math.ceil((new Date(school.subscriptionExpiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))) : 0;
+    
+    const usage = {
+      plan: {
+        name: plan?.name || 'Free Trial',
+        planId: school.subscriptionPlan,
+        daysRemaining: school.subscriptionExpiresAt && plan.trialDays > 0 ? daysRemaining : null,
+        canActivate: !school.subscriptionExpiresAt
+      },
+      usage: {
+        teachers: {
+          current: totalTeacherUsers,
+          limit: maxTeachers,
+          percentage: teacherPercentage,
+          unlimited: maxTeachers === -1
+        },
+        students: {
+          current: studentCount,
+          limit: maxStudents,
+          percentage: studentPercentage,
+          unlimited: maxStudents === -1
+        },
+        classes: {
+          current: classCount,
+          limit: maxClasses,
+          percentage: classPercentage,
+          unlimited: maxClasses === -1
+        }
+      },
+      warnings,
+      features: {
+        materials: plan?.materials || true,
+        templates: plan?.templates || true,
+        assignments: plan?.assignments || true,
+        financeModule: plan?.financeModule || false,
+        advancedAnalytics: plan?.advancedAnalytics || false,
+        customBranding: plan?.customBranding || false
+      }
+    };
+    
+    res.json(usage);
+  } catch (error) {
+    console.error('Get school usage error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getSystemStats,
   getUserGrowthAnalytics,
@@ -454,5 +664,7 @@ module.exports = {
   getSystemPerformance,
   getSystemHealth,
   getActivityLogs,
-  getSystemLogs
+  getSystemLogs,
+  getSchoolUsage,
+  getSubscriptionWarnings
 };

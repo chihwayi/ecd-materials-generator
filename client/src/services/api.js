@@ -25,6 +25,39 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
+    // Handle maintenance mode
+    if (error.response?.status === 503 && error.response?.data?.maintenanceMode) {
+      // Check if user is system admin
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role !== 'system_admin') {
+        // Store maintenance state
+        localStorage.setItem('maintenanceMode', 'true');
+        // Redirect to maintenance page
+        window.location.href = '/maintenance';
+      }
+    }
+    
+    // Handle subscription expiry
+    if (error.response?.status === 403 && error.response?.data?.subscriptionExpired) {
+      window.location.href = '/subscription-expired';
+    }
+    
+    // Handle inactive school - trial not activated
+    if (error.response?.status === 403 && error.response?.data?.trialNotActivated) {
+      // Redirect to pricing page for trial activation
+      window.location.href = '/subscription/pricing';
+      return Promise.reject(error);
+    }
+    
+    // Handle other inactive school cases
+    if (error.response?.status === 403 && error.response?.data?.schoolInactive) {
+      alert(error.response.data.message);
+      if (window.location.pathname !== '/dashboard') {
+        window.location.href = '/dashboard';
+      }
+    }
+    
     return Promise.reject(error);
   }
 );

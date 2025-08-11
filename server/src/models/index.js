@@ -17,6 +17,9 @@ const Receipt = require('./Receipt');
 const StudentServicePreference = require('./StudentServicePreference');
 const Subscription = require('./Subscription');
 const SubscriptionPayment = require('./SubscriptionPayment');
+const SubscriptionPlan = require('./SubscriptionPlan');
+const AuditLog = require('./AuditLog');
+const SystemNotification = require('./SystemNotification');
 
 // Define associations
 User.belongsTo(School, { foreignKey: 'schoolId' });
@@ -120,6 +123,10 @@ StudentServicePreference.belongsTo(School, { foreignKey: 'school_id', as: 'schoo
 Student.hasOne(StudentServicePreference, { foreignKey: 'student_id', as: 'servicePreference' });
 School.hasMany(StudentServicePreference, { foreignKey: 'school_id', as: 'studentServicePreferences' });
 
+// AuditLog associations
+AuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(AuditLog, { foreignKey: 'userId', as: 'auditLogs' });
+
 // Subscription associations
 Subscription.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
 School.hasMany(Subscription, { foreignKey: 'schoolId', as: 'subscriptions' });
@@ -128,6 +135,10 @@ SubscriptionPayment.belongsTo(Subscription, { foreignKey: 'subscriptionId', as: 
 SubscriptionPayment.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
 Subscription.hasMany(SubscriptionPayment, { foreignKey: 'subscriptionId', as: 'payments' });
 School.hasMany(SubscriptionPayment, { foreignKey: 'schoolId', as: 'subscriptionPayments' });
+
+// SystemNotification associations
+SystemNotification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(SystemNotification, { foreignKey: 'userId', as: 'notifications' });
 
 module.exports = {
   User,
@@ -148,5 +159,8 @@ module.exports = {
   Receipt,
   StudentServicePreference,
   Subscription,
-  SubscriptionPayment
+  SubscriptionPayment,
+  SubscriptionPlan,
+  AuditLog,
+  SystemNotification
 };

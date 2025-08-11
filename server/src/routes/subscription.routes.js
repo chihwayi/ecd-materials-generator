@@ -3,19 +3,59 @@ const router = express.Router();
 const subscriptionService = require('../services/subscription.service');
 const stripeService = require('../services/stripe.service');
 const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
-const { subscriptionPlans, annualPlans } = require('../config/subscription.config');
+const SubscriptionPlan = require('../models/SubscriptionPlan');
 
 // Get available plans
 router.get('/plans', async (req, res) => {
   try {
-    const plans = {
-      monthly: subscriptionPlans,
-      annual: annualPlans
-    };
+    const dbPlans = await SubscriptionPlan.findAll({
+      where: { isActive: true },
+      order: [['price', 'ASC']]
+    });
+    
+    const monthly = {};
+    const annual = {};
+    
+    dbPlans.forEach(plan => {
+      const planData = {
+        id: plan.planId,
+        name: plan.name,
+        price: parseFloat(plan.price),
+        currency: plan.currency,
+        interval: plan.interval,
+        trialDays: plan.trialDays,
+        features: {
+          maxStudents: plan.maxStudents,
+          maxTeachers: plan.maxTeachers,
+          maxClasses: plan.maxClasses,
+          materials: plan.materials,
+          templates: plan.templates,
+          assignments: plan.assignments,
+          basicAnalytics: plan.basicAnalytics,
+          financeModule: plan.financeModule,
+          advancedAnalytics: plan.advancedAnalytics,
+          prioritySupport: plan.prioritySupport,
+          customBranding: plan.customBranding,
+          apiAccess: plan.apiAccess,
+          whiteLabeling: plan.whiteLabeling
+        },
+        limits: {
+          storageGB: plan.storageGB,
+          monthlyExports: plan.monthlyExports,
+          customTemplates: plan.customTemplates
+        }
+      };
+      
+      if (plan.interval === 'month') {
+        monthly[plan.planId] = planData;
+      } else {
+        annual[plan.planId] = planData;
+      }
+    });
     
     res.json({
       success: true,
-      plans
+      plans: { monthly, annual }
     });
   } catch (error) {
     console.error('Error fetching plans:', error);
@@ -47,35 +87,43 @@ router.post('/create-checkout-session', authenticateToken, requireRole(['school_
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const plan = subscriptionPlans[planId] || annualPlans[planId];
-    if (!plan) {
+    // Get plan from database
+    const dbPlan = await SubscriptionPlan.findOne({ where: { planId, isActive: true } });
+    if (!dbPlan) {
       return res.status(400).json({ error: 'Invalid plan ID' });
     }
 
-    // Get or create Stripe customer
-    let customerId = null;
-    const existingSubscription = await subscriptionService.getSchoolSubscription(req.user.schoolId);
-    if (existingSubscription?.stripeCustomerId) {
-      customerId = existingSubscription.stripeCustomerId;
-    } else {
-      const school = await require('../models').School.findByPk(req.user.schoolId);
-      const customer = await stripeService.createCustomer(school);
-      customerId = customer.id;
+    // Check if it's a free trial
+    if (dbPlan.price === 0) {
+      // For free trial, just update the school's subscription
+      const { School } = require('../models');
+      const school = await School.findByPk(req.user.schoolId);
+      if (!school) {
+        return res.status(404).json({ error: 'School not found' });
+      }
+
+      // Set free trial
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + (dbPlan.trialDays || 30));
+      
+      await school.update({
+        subscriptionPlan: planId,
+        subscriptionStatus: 'trial',
+        subscriptionExpiresAt: trialEndDate
+      });
+
+      return res.json({
+        success: true,
+        message: 'Free trial activated',
+        url: successUrl.replace('{CHECKOUT_SESSION_ID}', 'free_trial')
+      });
     }
 
-    // Create checkout session
-    const session = await stripeService.createCheckoutSession(
-      customerId,
-      plan.id,
-      successUrl,
-      cancelUrl,
-      plan.trialDays
-    );
-
+    // For paid plans, create Stripe checkout session (mock for now)
     res.json({
       success: true,
-      sessionId: session.id,
-      url: session.url
+      sessionId: 'mock_session_id',
+      url: successUrl.replace('{CHECKOUT_SESSION_ID}', 'mock_session_id')
     });
   } catch (error) {
     console.error('Error creating checkout session:', error);

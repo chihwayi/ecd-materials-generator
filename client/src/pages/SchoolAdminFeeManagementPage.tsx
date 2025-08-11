@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { RootState } from '../store';
+import ConfirmDialog from '../components/common/ConfirmDialog.tsx';
 import api from '../services/api';
 
 interface FeeStructure {
@@ -46,6 +47,7 @@ const SchoolAdminFeeManagementPage: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [selectedStructure, setSelectedStructure] = useState<FeeStructure | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -164,13 +166,21 @@ const SchoolAdminFeeManagementPage: React.FC = () => {
   };
 
   const handleDeleteFeeStructure = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this fee structure?')) {
-      try {
-        await api.delete(`/fees/structures/${id}`);
-        fetchFeeStructures();
-      } catch (error) {
-        console.error('Error deleting fee structure:', error);
-      }
+    const structure = feeStructures.find(s => s.id === id);
+    setSelectedStructure(structure || null);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteFeeStructure = async () => {
+    if (!selectedStructure) return;
+    
+    try {
+      await api.delete(`/fees/structures/${selectedStructure.id}`);
+      setIsDeleteModalOpen(false);
+      setSelectedStructure(null);
+      fetchFeeStructures();
+    } catch (error) {
+      console.error('Error deleting fee structure:', error);
     }
   };
 
@@ -698,6 +708,20 @@ const SchoolAdminFeeManagementPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        <ConfirmDialog
+          isOpen={isDeleteModalOpen}
+          title="Delete Fee Structure"
+          message={`Are you sure you want to delete "${selectedStructure?.name}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="danger"
+          onConfirm={confirmDeleteFeeStructure}
+          onCancel={() => {
+            setIsDeleteModalOpen(false);
+            setSelectedStructure(null);
+          }}
+        />
       </div>
     </div>
   );

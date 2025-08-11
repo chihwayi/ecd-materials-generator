@@ -35,11 +35,13 @@ const SchoolSettingsPage = () => {
         api.get('/school/branding')
       ]);
       
-      setSettings({
+      const combinedSettings = {
         ...settingsResponse.data.settings,
-        ...brandingResponse.data.branding
-      });
+        ...brandingResponse.data.branding,
+        schoolName: settingsResponse.data.settings.name || settingsResponse.data.settings.schoolName || ''
+      };
       
+      setSettings(combinedSettings);
       setCurrentLogo(brandingResponse.data.branding.logoUrl || '');
       setCurrentFavicon(brandingResponse.data.branding.faviconUrl || '');
     } catch (error) {
@@ -150,17 +152,31 @@ const SchoolSettingsPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Configuration Panel</h2>
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-8 py-6 rounded-t-xl border-b border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
+                <span className="text-2xl text-white">⚙️</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Configuration Panel</h2>
+                <p className="text-sm text-gray-600">Customize your school settings and branding</p>
+              </div>
+            </div>
           </div>
 
-          <div className="p-6 space-y-8">
+          <div className="p-8 space-y-10">
             {/* Basic Settings */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                📋 Basic Information
-              </h2>
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-xl text-white">📋</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Basic Information</h3>
+                  <p className="text-sm text-gray-600">Essential school details</p>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -212,10 +228,16 @@ const SchoolSettingsPage = () => {
             </div>
 
             {/* Branding Settings */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                🎨 Branding & Customization
-              </h2>
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-xl text-white">🎨</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Branding & Customization</h3>
+                  <p className="text-sm text-gray-600">Customize your school's visual identity</p>
+                </div>
+              </div>
               
               <div className="mb-6">
                 <label className="flex items-center">

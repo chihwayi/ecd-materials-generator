@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth.middleware');
 const { Class, User, Student, School } = require('../models');
+const { checkClassLimit } = require('../middleware/plan-limits.middleware');
 const router = express.Router();
 
 // Get all classes for school admin
@@ -35,7 +36,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Create new class
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, checkClassLimit, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });

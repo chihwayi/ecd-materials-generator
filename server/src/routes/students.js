@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth.middleware');
 const { Student, Class, User, School } = require('../models');
+const { checkStudentLimit } = require('../middleware/plan-limits.middleware');
 const bcrypt = require('bcrypt');
 const router = express.Router();
 
@@ -74,7 +75,7 @@ router.post('/:id/create-parent', authenticateToken, async (req, res) => {
 });
 
 // Create student (school admin only)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, checkStudentLimit, async (req, res) => {
   try {
     if (req.user.role !== 'school_admin') {
       return res.status(403).json({ error: 'Access denied' });

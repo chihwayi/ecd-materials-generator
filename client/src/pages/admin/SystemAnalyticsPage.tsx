@@ -289,6 +289,43 @@ const SystemAnalyticsPage: React.FC = () => {
         </div>
       )}
 
+      {/* School Warnings */}
+      {schoolAnalytics.length > 0 && schoolAnalytics.some(school => 
+        school.warnings?.teachersNearLimit || school.warnings?.studentsNearLimit || school.warnings?.classesNearLimit
+      ) && (
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl shadow-lg border border-red-200 p-6">
+          <h3 className="text-xl font-bold text-red-900 mb-4 flex items-center">
+            ⚠️ Schools Approaching Limits
+          </h3>
+          <div className="space-y-3">
+            {schoolAnalytics
+              .filter(school => school.warnings?.teachersNearLimit || school.warnings?.studentsNearLimit || school.warnings?.classesNearLimit)
+              .map(school => (
+                <div key={school.id} className="bg-white rounded-lg p-4 border border-red-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-gray-900">{school.name}</h4>
+                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                      {school.subscriptionPlan?.toUpperCase() || 'FREE'}
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    {school.warnings?.teachersNearLimit && (
+                      <p className="text-red-700">👨🏫 Teachers: {(school.teacherCount || 0) + (school.adminCount || 0)}/{school.limits?.maxTeachers} ({Math.round(school.utilization?.teachers || 0)}%)</p>
+                    )}
+                    {school.warnings?.studentsNearLimit && (
+                      <p className="text-red-700">👥 Students: {school.studentCount || 0}/{school.limits?.maxStudents} ({Math.round(school.utilization?.students || 0)}%)</p>
+                    )}
+                    {school.warnings?.classesNearLimit && (
+                      <p className="text-red-700">🏢 Classes: {school.classCount || 0}/{school.limits?.maxClasses} ({Math.round(school.utilization?.classes || 0)}%)</p>
+                    )}
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+
       {/* School Analytics */}
       {schoolAnalytics.length > 0 ? (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
@@ -329,18 +366,39 @@ const SystemAnalyticsPage: React.FC = () => {
                         {school.name || 'Unknown School'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        <span className="font-medium">{activeUsers}</span>
-                        <span className="text-gray-400">/{totalUsers}</span>
+                        <div className="space-y-1">
+                          <div className="flex items-center">
+                            <span className="text-xs text-gray-500 w-16">Teachers:</span>
+                            <span className="font-medium">{(school.teacherCount || 0) + (school.adminCount || 0)}</span>
+                            <span className="text-gray-400">/{school.limits?.maxTeachers === -1 ? '∞' : school.limits?.maxTeachers || 5}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-xs text-gray-500 w-16">Students:</span>
+                            <span className="font-medium">{school.studentCount || 0}</span>
+                            <span className="text-gray-400">/{school.limits?.maxStudents === -1 ? '∞' : school.limits?.maxStudents || 100}</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <div className="w-20 bg-gray-200 rounded-full h-3 mr-3">
-                            <div
-                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full shadow-sm"
-                              style={{ width: `${Math.min(utilizationRate, 100)}%` }}
-                            />
+                        <div className="space-y-2">
+                          <div className="flex items-center">
+                            <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                              <div
+                                className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full shadow-sm"
+                                style={{ width: `${Math.min(school.utilization?.teachers || 0, 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold">{Math.round(school.utilization?.teachers || 0)}%</span>
                           </div>
-                          <span className="font-semibold">{Math.round(utilizationRate)}%</span>
+                          <div className="flex items-center">
+                            <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                              <div
+                                className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full shadow-sm"
+                                style={{ width: `${Math.min(school.utilization?.students || 0, 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold">{Math.round(school.utilization?.students || 0)}%</span>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

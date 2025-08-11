@@ -100,7 +100,7 @@ export const schoolService = {
 
   // Delete school
   deleteSchool: async (id: string): Promise<void> => {
-    await api.delete(`/users/schools/${id}`);
+    await api.delete(`/admin/schools/${id}`);
   }
 };
 
@@ -127,6 +127,18 @@ export const analyticsService = {
   // Get school analytics
   getSchoolAnalytics: async (): Promise<any[]> => {
     const response = await api.get('/analytics/schools/analytics');
+    return response.data;
+  },
+
+  // Get school usage for school admin
+  getSchoolUsage: async (): Promise<any> => {
+    const response = await api.get('/analytics/school/usage');
+    return response.data;
+  },
+
+  // Activate trial plan
+  activateTrialPlan: async (): Promise<any> => {
+    const response = await api.post('/analytics/school/activate-trial');
     return response.data;
   }
 };
@@ -377,6 +389,17 @@ export const adminService = {
   toggleUserStatus: async (userId: string): Promise<void> => {
     try {
       await api.put(`/admin/users/${userId}/toggle-status`);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  resetUserPassword: async (userId: string, newPassword?: string): Promise<any> => {
+    try {
+      const response = await api.post(`/admin/users/${userId}/reset-password`, {
+        newPassword
+      });
+      return response.data;
     } catch (error) {
       throw error;
     }

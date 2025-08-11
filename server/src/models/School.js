@@ -22,16 +22,28 @@ const School = sequelize.define('School', {
     defaultValue: 'free'
   },
   subscriptionStatus: {
-    type: DataTypes.ENUM('active', 'cancelled', 'expired'),
+    type: DataTypes.ENUM('active', 'cancelled', 'expired', 'grace_period', 'payment_failed'),
     defaultValue: 'active'
+  },
+  subscriptionExpiresAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  lastPaymentAttempt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  paymentFailureCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   },
   maxTeachers: {
     type: DataTypes.INTEGER,
-    defaultValue: 5
+    defaultValue: 0
   },
   maxStudents: {
     type: DataTypes.INTEGER,
-    defaultValue: 100
+    defaultValue: 0
   },
   isActive: {
     type: DataTypes.BOOLEAN,

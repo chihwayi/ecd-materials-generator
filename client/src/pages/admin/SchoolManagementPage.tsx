@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import DataTable, { Column } from '../../components/admin/DataTable.tsx';
 import Modal from '../../components/admin/Modal.tsx';
+import ConfirmDialog from '../../components/common/ConfirmDialog.tsx';
 import { schoolService } from '../../services/admin.service.ts';
 import { School, CreateSchoolRequest, UpdateSchoolRequest, SchoolFilters, PaginatedResponse } from '../../types/user.types';
+import api from '../../services/api';
 
 interface SchoolWithBranding extends School {
   // Branding fields
@@ -31,6 +33,7 @@ interface CreateSchoolRequestWithBranding extends CreateSchoolRequest {
 const SchoolManagementPage: React.FC = () => {
   const [schools, setSchools] = useState<SchoolWithBranding[]>([]);
   const [loading, setLoading] = useState(true);
+  const [availablePlans, setAvailablePlans] = useState<any[]>([]);
   const [pagination, setPagination] = useState({
     current: 1,
     total: 0,
@@ -42,14 +45,15 @@ const SchoolManagementPage: React.FC = () => {
   const [selectedSchool, setSelectedSchool] = useState<SchoolWithBranding | null>(null);
   const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [formData, setFormData] = useState<CreateSchoolRequestWithBranding>({
     name: '',
     address: '',
     contactEmail: '',
     contactPhone: '',
     subscriptionPlan: 'free',
-    maxTeachers: 5,
-    maxStudents: 100,
+
     primaryColor: '#2563eb',
     secondaryColor: '#1d4ed8',
     accentColor: '#fbbf24',
@@ -61,7 +65,17 @@ const SchoolManagementPage: React.FC = () => {
 
   useEffect(() => {
     fetchSchools();
+    fetchAvailablePlans();
   }, [pagination.current, pagination.pageSize, filters]);
+
+  const fetchAvailablePlans = async () => {
+    try {
+      const response = await api.get('/admin/plans');
+      setAvailablePlans(response.data.plans);
+    } catch (error) {
+      console.error('Error fetching plans:', error);
+    }
+  };
 
   useEffect(() => {
     setShowBulkActions(selectedSchools.length > 0);
@@ -115,11 +129,18 @@ const SchoolManagementPage: React.FC = () => {
   };
 
   const handleDeleteSchool = async (school: SchoolWithBranding) => {
-    if (!confirm(`Are you sure you want to delete ${school.name}?`)) return;
+    setSelectedSchool(school);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteSchool = async () => {
+    if (!selectedSchool) return;
     
     try {
-      await schoolService.deleteSchool(school.id);
+      await schoolService.deleteSchool(selectedSchool.id);
       toast.success('School deleted successfully');
+      setIsDeleteModalOpen(false);
+      setSelectedSchool(null);
       fetchSchools();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete school');
@@ -127,12 +148,15 @@ const SchoolManagementPage: React.FC = () => {
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedSchools.length} schools?`)) return;
-    
+    setIsBulkDeleteModalOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
     try {
       await Promise.all(selectedSchools.map(id => schoolService.deleteSchool(id)));
       toast.success('Schools deleted successfully');
       setSelectedSchools([]);
+      setIsBulkDeleteModalOpen(false);
       fetchSchools();
     } catch (error: any) {
       toast.error('Failed to delete schools');
@@ -182,8 +206,7 @@ const SchoolManagementPage: React.FC = () => {
       contactEmail: '',
       contactPhone: '',
       subscriptionPlan: 'free',
-      maxTeachers: 5,
-      maxStudents: 100,
+
       primaryColor: '#2563eb',
       secondaryColor: '#1d4ed8',
       accentColor: '#fbbf24',
@@ -202,8 +225,8 @@ const SchoolManagementPage: React.FC = () => {
       contactEmail: school.contactEmail || '',
       contactPhone: school.contactPhone || '',
       subscriptionPlan: school.subscriptionPlan,
-      maxTeachers: school.maxTeachers,
-      maxStudents: school.maxStudents,
+      subscriptionExpiresAt: school.subscriptionExpiresAt,
+
       primaryColor: school.primaryColor || '#2563eb',
       secondaryColor: school.secondaryColor || '#1d4ed8',
       accentColor: school.accentColor || '#fbbf24',
@@ -223,7 +246,7 @@ const SchoolManagementPage: React.FC = () => {
         <div className="flex items-center space-x-3">
           {school.logoUrl && (
             <img 
-              src={school.logoUrl} 
+              src={school.logoUrl.startsWith('http') ? school.logoUrl : `http://localhost:5000${school.logoUrl}`} 
               alt="School Logo" 
               className="w-8 h-8 object-contain rounded"
             />
@@ -240,28 +263,62 @@ const SchoolManagementPage: React.FC = () => {
     {
       key: 'subscriptionPlan',
       title: 'Plan',
-      render: (value, school) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          school.subscriptionPlan === 'premium' ? 'bg-purple-100 text-purple-800' :
-          school.subscriptionPlan === 'basic' ? 'bg-blue-100 text-blue-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
-          {school.subscriptionPlan}
-        </span>
-      )
+      render: (value, school) => {
+        const planColors = {
+          'free': 'bg-green-100 text-green-800',
+          'basic': 'bg-blue-100 text-blue-800',
+          'premium': 'bg-purple-100 text-purple-800'
+        };
+        const planNames = {
+          'free': 'Free Plan',
+          'basic': 'Basic Plan',
+          'premium': 'Premium Plan'
+        };
+        const isInactive = !school.subscriptionExpiresAt;
+        return (
+          <div className="flex flex-col">
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              planColors[school.subscriptionPlan] || 'bg-gray-100 text-gray-800'
+            }`}>
+              {planNames[school.subscriptionPlan] || school.subscriptionPlan}
+            </span>
+            {isInactive && (
+              <span className="text-xs text-orange-600 mt-1">⚠️ Inactive</span>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'subscriptionStatus',
-      title: 'Status',
-      render: (value, school) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          school.subscriptionStatus === 'active' ? 'bg-green-100 text-green-800' :
-          school.subscriptionStatus === 'expired' ? 'bg-red-100 text-red-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
-          {school.subscriptionStatus}
-        </span>
-      )
+      title: 'Trial Status',
+      render: (value, school) => {
+        const isInactive = !school.subscriptionExpiresAt;
+        const isExpired = school.subscriptionExpiresAt && new Date(school.subscriptionExpiresAt) < new Date();
+        
+        if (isInactive) {
+          return (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+              🔒 Not Activated
+            </span>
+          );
+        }
+        
+        if (isExpired) {
+          return (
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+              ⏰ Expired
+            </span>
+          );
+        }
+        
+        const daysLeft = Math.ceil((new Date(school.subscriptionExpiresAt) - new Date()) / (1000 * 60 * 60 * 24));
+        return (
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            ✅ {daysLeft} days left
+          </span>
+        );
+      }
     },
     {
       key: 'brandingEnabled',
@@ -346,40 +403,30 @@ const SchoolManagementPage: React.FC = () => {
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Subscription Plan</label>
-        <select
-          value={formData.subscriptionPlan}
-          onChange={(e) => setFormData({ ...formData, subscriptionPlan: e.target.value as any })}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="free">Free</option>
-          <option value="basic">Basic</option>
-          <option value="premium">Premium</option>
-        </select>
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="flex items-center space-x-2 mb-2">
+          <span className="text-blue-600">ℹ️</span>
+          <h4 className="font-medium text-blue-900">Subscription Plan</h4>
+        </div>
+        <p className="text-sm text-blue-700 mb-3">
+          New schools will start with an inactive free plan. School admins can activate their 30-day trial from their dashboard.
+        </p>
+        <div className="bg-white p-3 rounded border border-blue-200">
+          <span className="text-sm font-medium text-gray-700">Default Plan: </span>
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            🆓 Free Plan (Inactive)
+          </span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Max Teachers</label>
-          <input
-            type="number"
-            min="1"
-            value={formData.maxTeachers}
-            onChange={(e) => setFormData({ ...formData, maxTeachers: parseInt(e.target.value) || 5 })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="flex items-center space-x-2 mb-2">
+          <span className="text-blue-600">📊</span>
+          <h4 className="font-medium text-blue-900">Usage Limits</h4>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Max Students</label>
-          <input
-            type="number"
-            min="1"
-            value={formData.maxStudents}
-            onChange={(e) => setFormData({ ...formData, maxStudents: parseInt(e.target.value) || 100 })}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
+        <p className="text-sm text-blue-700">
+          Usage limits are automatically determined by the school's subscription plan. Schools start with inactive limits (0) until they activate their trial.
+        </p>
       </div>
 
       {/* Branding Section */}
@@ -564,16 +611,46 @@ const SchoolManagementPage: React.FC = () => {
   );
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">School Management</h1>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Add School
-        </button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-xl shadow-lg p-8 text-white mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2 flex items-center">
+                🏫 School Management
+              </h1>
+              <p className="text-blue-100 text-lg">
+                Manage schools and their configurations
+              </p>
+            </div>
+            <div className="text-6xl opacity-20">🎓</div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-8 py-6 rounded-t-xl border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
+                  <span className="text-2xl text-white">🏫</span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Schools Directory</h2>
+                  <p className="text-sm text-gray-600">Create and manage school accounts</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+              >
+                <span>➕</span>
+                <span>Add School</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="p-8">
 
       {showBulkActions && (
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
@@ -605,29 +682,32 @@ const SchoolManagementPage: React.FC = () => {
         </div>
       )}
 
-      <DataTable
-        columns={columns}
-        data={schools}
-        loading={loading}
-      />
+            <DataTable
+              columns={columns}
+              data={schools}
+              loading={loading}
+            />
+          </div>
+        </div>
+      </div>
 
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Create New School"
+        title="🏫 Create New School"
         footer={
           <div className="flex space-x-3">
             <button
               onClick={() => setIsCreateModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
             >
-              Cancel
+              ❌ Cancel
             </button>
             <button
               onClick={handleCreateSchool}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg hover:shadow-lg transition-all duration-200 font-medium"
             >
-              Create School
+              ✨ Create School
             </button>
           </div>
         }
@@ -638,26 +718,51 @@ const SchoolManagementPage: React.FC = () => {
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title="Edit School"
+        title="✏️ Edit School"
         footer={
           <div className="flex space-x-3">
             <button
               onClick={() => setIsEditModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
             >
-              Cancel
+              ❌ Cancel
             </button>
             <button
               onClick={handleUpdateSchool}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:shadow-lg transition-all duration-200 font-medium"
             >
-              Update School
+              💾 Update School
             </button>
           </div>
         }
       >
         {renderSchoolForm()}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={isDeleteModalOpen}
+        title="Delete School"
+        message={`Are you sure you want to delete "${selectedSchool?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={confirmDeleteSchool}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedSchool(null);
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isBulkDeleteModalOpen}
+        title="Delete Multiple Schools"
+        message={`Are you sure you want to delete ${selectedSchools.length} schools? This action cannot be undone.`}
+        confirmText="Delete All"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setIsBulkDeleteModalOpen(false)}
+      />
     </div>
   );
 };

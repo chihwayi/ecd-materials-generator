@@ -15,7 +15,7 @@ interface SystemActivity {
   id: string;
   type: string;
   description: string;
-  user: string;
+  user: string | { id: string; firstName?: string; lastName?: string; email?: string };
   timestamp: string;
 }
 
@@ -177,6 +177,20 @@ const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({ user }) => 
     return `${percentage}% (${used}MB / ${total}MB)`;
   };
 
+  // Safely render user names coming from the API which may be a string or an object
+  const displayUser = (u: unknown): string => {
+    if (!u) return 'Unknown';
+    if (typeof u === 'string') return u;
+    if (typeof u === 'object') {
+      const obj = u as { firstName?: string; lastName?: string; email?: string; id?: string };
+      const first = obj.firstName ?? '';
+      const last = obj.lastName ?? '';
+      const name = `${first} ${last}`.trim();
+      return name || obj.email || obj.id || 'Unknown';
+    }
+    return 'Unknown';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -188,7 +202,7 @@ const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({ user }) => 
   return (
     <div className="space-y-8">
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-4 gap-6">
+      <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-6">
         <Link
           to="/admin/users"
           className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
@@ -205,11 +219,35 @@ const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({ user }) => 
           className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
         >
           <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-            <span className="text-2xl">🏫</span>
+            <span className="text-2xl">🏦</span>
           </div>
           <h3 className="font-semibold text-gray-900 mb-2">Manage Schools</h3>
           <p className="text-sm text-gray-600">View and manage schools</p>
         </Link>
+
+        <Link
+          to="/admin/subscriptions"
+          className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-red-200 bg-red-50"
+        >
+          <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+            <span className="text-2xl">💳</span>
+          </div>
+          <h3 className="font-semibold text-red-900 mb-2">Subscription Monitor</h3>
+          <p className="text-sm text-red-600">Monitor subscriptions & payments</p>
+        </Link>
+
+        {user.role === 'system_admin' && (
+          <Link
+            to="/admin/subscription-plans"
+            className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-indigo-200 bg-indigo-50"
+          >
+            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">📋</span>
+            </div>
+            <h3 className="font-semibold text-indigo-900 mb-2">Subscription Plans</h3>
+            <p className="text-sm text-indigo-600">Manage pricing & features</p>
+          </Link>
+        )}
 
         <Link
           to="/admin/system-analytics"
@@ -223,15 +261,53 @@ const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({ user }) => 
         </Link>
 
         <Link
-          to="/admin/system-settings"
+          to="/admin/audit-logs"
           className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
         >
-          <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-            <span className="text-2xl">⚙️</span>
+          <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
+            <span className="text-2xl">📋</span>
           </div>
-          <h3 className="font-semibold text-gray-900 mb-2">System Settings</h3>
-          <p className="text-sm text-gray-600">Configure system</p>
+          <h3 className="font-semibold text-gray-900 mb-2">Audit Logs</h3>
+          <p className="text-sm text-gray-600">Track system activities</p>
         </Link>
+
+        {user.role === 'system_admin' && (
+          <Link
+            to="/admin/system-settings"
+            className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+          >
+            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+              <span className="text-2xl">⚙️</span>
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">System Settings</h3>
+            <p className="text-sm text-gray-600">Configure system</p>
+          </Link>
+        )}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <button
+            onClick={() => handleMaintenanceMode(true)}
+            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm"
+          >
+            🔧 Enable Maintenance
+          </button>
+          <button
+            onClick={() => handleClearCache()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+          >
+            🗑️ Clear Cache
+          </button>
+          <Link
+            to="/admin/audit-logs"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm text-center"
+          >
+            📋 View Audit Logs
+          </Link>
+        </div>
       </div>
 
       {/* System Stats */}
@@ -364,7 +440,7 @@ const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({ user }) => 
                 <div key={activity.id} className="flex items-center justify-between py-2">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{activity.description}</p>
-                    <p className="text-xs text-gray-500">by {activity.user}</p>
+                    <p className="text-xs text-gray-500">by {displayUser(activity.user)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-gray-500">
@@ -402,34 +478,7 @@ const SystemAdminDashboard: React.FC<SystemAdminDashboardProps> = ({ user }) => 
         </div>
       )}
 
-      {/* Maintenance Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">System Maintenance</h2>
-        </div>
-        <div className="p-6">
-          <div className="grid md:grid-cols-3 gap-4">
-            <button
-              onClick={() => handleMaintenanceMode(true)}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm"
-            >
-              🔧 Enable Maintenance Mode
-            </button>
-            <button
-              onClick={() => handleMaintenanceMode(false)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-            >
-              ✅ Disable Maintenance Mode
-            </button>
-            <button
-              onClick={() => handleClearCache()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-            >
-              🗑️ Clear Cache
-            </button>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };

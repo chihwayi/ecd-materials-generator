@@ -59,47 +59,52 @@ const PasswordRecoveryPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Password Recovery</h1>
-          <p className="text-gray-600 mt-2">Reset passwords for teachers and parents.</p>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 rounded-xl shadow-lg p-8 text-white mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">🔑 Password Recovery</h1>
+              <p className="text-red-100 text-lg">Reset passwords for teachers and parents</p>
+            </div>
+            <div className="text-6xl opacity-20">🔐</div>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-6">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 rounded-t-xl border-b border-gray-200">
+            <nav className="flex space-x-8">
               <button
                 onClick={() => setActiveTab('teachers')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                   activeTab === 'teachers'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                 }`}
               >
-                Teachers
+                👨🏫 Teachers
               </button>
               <button
                 onClick={() => setActiveTab('parents')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                   activeTab === 'parents'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-purple-500 text-white shadow-md'
+                    : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                 }`}
               >
-                Parents
+                👨👩👧👦 Parents
               </button>
             </nav>
           </div>
-        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -223,6 +228,7 @@ const PasswordRecoveryPage = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
