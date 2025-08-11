@@ -119,16 +119,30 @@ const SubscriptionPricingPage: React.FC = () => {
         subscriptionService.getCurrentSubscription().catch(() => null)
       ]);
       
+      console.log('Fetched subscription data:', subscriptionData);
+      
       setPlans(plansData);
       setCurrentSubscription(subscriptionData);
       
-      // Check if trial is already activated by checking if there's an expiry date
-      if (subscriptionData?.subscription?.currentPeriodEnd && 
-          subscriptionData.subscription.planName === 'free') {
-        const expiryDate = new Date(subscriptionData.subscription.currentPeriodEnd);
-        const defaultDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        // If expiry date is not the default 30-day future date, trial has been activated
-        if (Math.abs(expiryDate.getTime() - defaultDate.getTime()) > 24 * 60 * 60 * 1000) {
+      // Check if trial is already activated by checking subscription status and plan
+      if (subscriptionData) {
+        // The subscription data is flat, not nested under a 'subscription' property
+        // Trial is considered used if:
+        // 1. Status is 'trial' (active trial)
+        // 2. Status is 'active' with planName 'free' (trial was activated)
+        // 3. Has currentPeriodEnd with planName 'free' (has expiry date)
+        const hasUsedTrial = subscriptionData.status === 'trial' || 
+                            (subscriptionData.status === 'active' && subscriptionData.planName === 'free') ||
+                            (subscriptionData.currentPeriodEnd && subscriptionData.planName === 'free');
+        
+        console.log('Trial detection:', {
+          status: subscriptionData.status,
+          planName: subscriptionData.planName,
+          hasUsedTrial,
+          subscription: subscriptionData
+        });
+        
+        if (hasUsedTrial) {
           setTrialActivated(true);
         }
       }
@@ -211,10 +225,30 @@ const SubscriptionPricingPage: React.FC = () => {
             Choose Your Plan
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Start with our free trial and upgrade as your school grows. 
-            All plans include core features with different capacity limits.
+            {trialActivated 
+              ? 'Choose a plan that fits your school\'s needs. All plans include core features with different capacity limits.'
+              : 'Start with our free trial and upgrade as your school grows. All plans include core features with different capacity limits.'
+            }
           </p>
         </div>
+
+        {/* Trial Not Available Notice */}
+        {trialActivated && (
+          <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  <strong>Free trial already used:</strong> Your school has already activated the free trial. Choose a paid plan to continue using all features.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Billing Cycle Toggle */}
         <div className="flex justify-center mb-12">
@@ -248,9 +282,31 @@ const SubscriptionPricingPage: React.FC = () => {
         {/* Plans Grid - Compact Version */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {Object.entries(currentPlans).filter(([planId, plan]) => {
-            // Hide free trial if school already has active trial or subscription
-            if (plan.price === 0 && currentSubscription?.subscription?.status === 'trial') {
-              return false;
+            // Hide free trial if:
+            // 1. It's a free plan (price === 0)
+            // 2. AND either:
+            //    - Current subscription status is 'trial' (active trial)
+            //    - Current subscription status is 'active' with planName 'free' (trial was used)
+            //    - Trial has been activated before (trialActivated state)
+            if (plan.price === 0) {
+              console.log('Current subscription state:', currentSubscription);
+              // The subscription data is flat, not nested under a 'subscription' property
+              const hasUsedTrial = currentSubscription?.status === 'trial' || 
+                                  (currentSubscription?.status === 'active' && currentSubscription?.planName === 'free') ||
+                                  trialActivated;
+              
+              console.log('Filtering plan:', planId, {
+                price: plan.price,
+                subscriptionStatus: currentSubscription?.status,
+                subscriptionPlanName: currentSubscription?.planName,
+                trialActivated,
+                hasUsedTrial,
+                shouldHide: hasUsedTrial
+              });
+              
+              if (hasUsedTrial) {
+                return false; // Hide the trial plan
+              }
             }
             return true;
           }).map(([planId, plan]) => {
