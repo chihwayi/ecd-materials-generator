@@ -66,7 +66,7 @@ class SubscriptionService {
   // Get current subscription
   async getCurrentSubscription(): Promise<SubscriptionSummary> {
     const response = await api.get('/subscription/current');
-    return response.data.subscription;
+    return response.data.subscription || response.data;
   }
 
   // Create checkout session

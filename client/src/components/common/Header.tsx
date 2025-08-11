@@ -5,6 +5,7 @@ import { RootState } from '../../store';
 import { logout } from '../../store/authSlice';
 import NotificationBadge from './NotificationBadge.tsx';
 import api from '../../services/api';
+import subscriptionService from '../../services/subscription.service.ts';
 
 interface SchoolBranding {
   logoUrl?: string;
@@ -23,14 +24,18 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const [schoolBranding, setSchoolBranding] = useState<SchoolBranding>({});
   const [loading, setLoading] = useState(true);
+  const [subscriptionActive, setSubscriptionActive] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && user?.schoolId) {
       fetchSchoolBranding();
+      if (user?.role === 'school_admin') {
+        checkSubscriptionStatus();
+      }
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated, user?.schoolId]);
+  }, [isAuthenticated, user?.schoolId, user?.role]);
 
   const fetchSchoolBranding = async () => {
     try {
@@ -42,6 +47,16 @@ const Header: React.FC = () => {
       setSchoolBranding({});
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkSubscriptionStatus = async () => {
+    try {
+      const sub = await subscriptionService.getCurrentSubscription();
+      setSubscriptionActive(!!(sub && sub.isActive));
+    } catch (error) {
+      console.error('Failed to check subscription status:', error);
+      setSubscriptionActive(false);
     }
   };
 
@@ -70,6 +85,9 @@ const Header: React.FC = () => {
   };
 
   const styles = getBrandingStyles();
+
+  // Check if school admin navigation should be shown
+  const shouldShowSchoolAdminNav = user?.role === 'school_admin' && subscriptionActive === true;
 
   if (loading) {
     return (
@@ -158,11 +176,15 @@ const Header: React.FC = () => {
                 {/* School Admin Only Navigation - Reduced to most essential items */}
                 {user?.role === 'school_admin' && (
                   <>
-                    <Link to="/manage-teachers" className={`${styles.textColor} ${styles.textHover} px-2 py-1 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap`}>👨‍🏫 Teachers</Link>
-                    <Link to="/school-students" className={`${styles.textColor} ${styles.textHover} px-2 py-1 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap`}>👥 Students</Link>
-                    <Link to="/fee-management" className={`${styles.textColor} ${styles.textHover} px-2 py-1 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap`}>💰 Fees</Link>
-                    <Link to="/school-finance" className={`${styles.textColor} ${styles.textHover} px-2 py-1 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap`}>📊 Finance</Link>
                     <Link to="/subscription/pricing" className={`${styles.textColor} ${styles.textHover} px-2 py-1 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap`}>💳 Plans</Link>
+                    {shouldShowSchoolAdminNav && (
+                      <>
+                        <Link to="/manage-teachers" className={`${styles.textColor} ${styles.textHover} px-2 py-1 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap`}>👨‍🏫 Teachers</Link>
+                        <Link to="/school-students" className={`${styles.textColor} ${styles.textHover} px-2 py-1 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap`}>👥 Students</Link>
+                        <Link to="/fee-management" className={`${styles.textColor} ${styles.textHover} px-2 py-1 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap`}>💰 Fees</Link>
+                        <Link to="/school-finance" className={`${styles.textColor} ${styles.textHover} px-2 py-1 rounded text-xs font-medium transition-colors duration-200 whitespace-nowrap`}>📊 Finance</Link>
+                      </>
+                    )}
                   </>
                 )}
 

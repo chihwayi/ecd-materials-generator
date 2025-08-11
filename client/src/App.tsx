@@ -53,10 +53,45 @@ import MaintenancePage from './pages/MaintenancePage.tsx';
 import { useSelector } from 'react-redux';
 import RoleProtectedRoute from './components/auth/RoleProtectedRoute.tsx';
 import { RootState } from './store';
+import subscriptionService from './services/subscription.service.ts';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+const SubscriptionProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isActive, setIsActive] = React.useState<boolean | null>(null);
+  const location = window.location.pathname;
+
+  React.useEffect(() => {
+    const checkSubscription = async () => {
+      if (user?.role === 'school_admin') {
+        setIsLoading(true);
+        try {
+          const sub = await subscriptionService.getCurrentSubscription();
+          console.log('Subscription check result:', sub);
+          setIsActive(!!(sub && sub.isActive));
+        } catch (error) {
+          console.error('Subscription check error:', error);
+          setIsActive(false);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    checkSubscription();
+  }, [user]);
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'school_admin') return <>{children}</>;
+  if (isLoading || isActive === null) return <div className="min-h-screen flex items-center justify-center text-xl">Checking subscription...</div>;
+  if (!isActive && location !== '/subscription/pricing') {
+    return <Navigate to="/subscription/pricing" replace />;
+  }
+  return <>{children}</>;
 };
 
 const FinanceRedirect: React.FC = () => {
@@ -100,9 +135,11 @@ const AppContent: React.FC = () => {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
-                <DashboardRedirect />
-              </ProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <ProtectedRoute>
+                  <DashboardRedirect />
+                </ProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
@@ -335,84 +372,95 @@ const AppContent: React.FC = () => {
               </RoleProtectedRoute>
             }
           />
+          {/* School admin protected routes */}
           <Route
             path="/manage-teachers"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <ManageTeachersPage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <ManageTeachersPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
             path="/school-students"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <SchoolStudentsPage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <SchoolStudentsPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
             path="/school-analytics"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <SchoolAnalyticsPage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <SchoolAnalyticsPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
             path="/fee-management"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <SchoolAdminFeeManagementPage />
-              </RoleProtectedRoute>
-            }
-          />
-          <Route
-            path="/finance"
-            element={
-              <RoleProtectedRoute allowedRoles={['finance', 'school_admin']}>
-                <FinanceRedirect />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <SchoolAdminFeeManagementPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
             path="/school-finance"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <SchoolAdminFinancePage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <SchoolAdminFinancePage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
             path="/manage-classes"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <ManageClassesPage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <ManageClassesPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
             path="/password-recovery"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <PasswordRecoveryPage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <PasswordRecoveryPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
             path="/create-student"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <CreateStudentPage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <CreateStudentPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
             path="/class-students/:classId"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <ClassStudentsPage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <ClassStudentsPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
@@ -482,9 +530,11 @@ const AppContent: React.FC = () => {
           <Route
             path="/school-settings"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <SchoolSettingsPage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <SchoolSettingsPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route
@@ -498,9 +548,11 @@ const AppContent: React.FC = () => {
           <Route
             path="/financial-reports"
             element={
-              <RoleProtectedRoute allowedRoles={['school_admin']}>
-                <FinancialReportsPage />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <FinancialReportsPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route

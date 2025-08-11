@@ -17,6 +17,8 @@ const checkSubscriptionStatus = async (req, res, next) => {
       // Only allow access to activation and profile routes - NO dashboard access
       const allowedInactivePaths = [
         '/analytics/school/activate-trial',
+        // Allow starting the free trial from the pricing page flow
+        '/subscription/create-checkout-session',
         '/users/profile/me',
         '/auth/logout'
       ];

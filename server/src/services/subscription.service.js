@@ -103,30 +103,48 @@ class SubscriptionService {
     try {
       const school = await School.findByPk(schoolId);
       if (!school) {
+        const now = new Date();
+        const fallbackEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
         return {
           planName: 'free',
           status: 'active',
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          cancelAtPeriodEnd: false
+          currentPeriodStart: now,
+          currentPeriodEnd: fallbackEnd,
+          cancelAtPeriodEnd: false,
+          isActive: true,
+          daysUntilExpiry: Math.ceil((fallbackEnd - now) / (1000 * 60 * 60 * 24))
         };
       }
 
+      const now = new Date();
+      const currentPeriodEnd = school.subscriptionExpiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const status = school.subscriptionStatus || 'active';
+      const isActive = Boolean(school.subscriptionExpiresAt) && new Date(school.subscriptionExpiresAt) > now && ['active', 'trial', 'grace_period'].includes(status);
+      const daysUntilExpiry = school.subscriptionExpiresAt
+        ? Math.max(0, Math.ceil((new Date(school.subscriptionExpiresAt) - now) / (1000 * 60 * 60 * 24)))
+        : null;
+
       return {
         planName: school.subscriptionPlan || 'free',
-        status: school.subscriptionStatus || 'active',
+        status,
         currentPeriodStart: school.createdAt,
-        currentPeriodEnd: school.subscriptionExpiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        cancelAtPeriodEnd: school.subscriptionStatus === 'cancelled'
+        currentPeriodEnd,
+        cancelAtPeriodEnd: status === 'cancelled',
+        isActive,
+        daysUntilExpiry
       };
     } catch (error) {
       console.error('Error getting subscription summary:', error);
+      const now = new Date();
+      const fallbackEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       return {
         planName: 'free',
         status: 'active',
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        cancelAtPeriodEnd: false
+        currentPeriodStart: now,
+        currentPeriodEnd: fallbackEnd,
+        cancelAtPeriodEnd: false,
+        isActive: true,
+        daysUntilExpiry: Math.ceil((fallbackEnd - now) / (1000 * 60 * 60 * 24))
       };
     }
   }

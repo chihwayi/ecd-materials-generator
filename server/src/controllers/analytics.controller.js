@@ -541,6 +541,8 @@ const getSchoolUsage = async (req, res) => {
     // Get subscription plan limits
     const plan = await SubscriptionPlan.findOne({ where: { planId } });
     if (!plan) {
+      const now = new Date();
+      const isActive = Boolean(school.subscriptionExpiresAt) && new Date(school.subscriptionExpiresAt) > now && ['active', 'trial', 'grace_period'].includes(school.subscriptionStatus || 'active');
       // Fallback to default limits if plan not found
       const maxTeachers = 5;
       const maxStudents = 50;
@@ -562,7 +564,8 @@ const getSchoolUsage = async (req, res) => {
           name: 'Free Trial',
           planId: school.subscriptionPlan,
           daysRemaining: school.subscriptionExpiresAt ? daysRemaining : null,
-          canActivate: !school.subscriptionExpiresAt
+          canActivate: !school.subscriptionExpiresAt,
+          isActive
         },
         usage: {
           teachers: {
@@ -596,6 +599,7 @@ const getSchoolUsage = async (req, res) => {
       });
     }
     
+    const now = new Date();
     const maxTeachers = plan.maxTeachers;
     const maxStudents = plan.maxStudents;
     const maxClasses = plan.maxClasses;
@@ -612,12 +616,15 @@ const getSchoolUsage = async (req, res) => {
     // Calculate days remaining based on subscription expiry
     const daysRemaining = school.subscriptionExpiresAt ? Math.max(0, Math.ceil((new Date(school.subscriptionExpiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))) : 0;
     
+    const isActive = Boolean(school.subscriptionExpiresAt) && new Date(school.subscriptionExpiresAt) > now && ['active', 'trial', 'grace_period'].includes(school.subscriptionStatus || 'active');
+
     const usage = {
       plan: {
         name: plan?.name || 'Free Trial',
         planId: school.subscriptionPlan,
         daysRemaining: school.subscriptionExpiresAt && plan.trialDays > 0 ? daysRemaining : null,
-        canActivate: !school.subscriptionExpiresAt
+        canActivate: !school.subscriptionExpiresAt,
+        isActive
       },
       usage: {
         teachers: {
