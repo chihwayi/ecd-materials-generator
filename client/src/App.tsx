@@ -563,6 +563,24 @@ const AppContent: React.FC = () => {
               </RoleProtectedRoute>
             }
           />
+          <Route
+            path="/finance-configuration"
+            element={
+              <RoleProtectedRoute allowedRoles={['finance', 'school_admin']}>
+                <FinanceRedirect />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/finance"
+            element={
+              <SubscriptionProtectedRoute>
+                <ProtectedRoute>
+                  <FinanceRedirect />
+                </ProtectedRoute>
+              </SubscriptionProtectedRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>
