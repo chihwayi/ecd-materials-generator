@@ -28,7 +28,10 @@ const getSchoolLimits = async (school) => {
   // Get plan limits from SubscriptionPlan table
   const planMapping = {
     'free': 'free_trial',
+    'starter': 'starter',
     'basic': 'basic',
+    'professional': 'professional',
+    'enterprise': 'enterprise',
     'premium': 'professional'
   };
 

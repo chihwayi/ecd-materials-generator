@@ -1,22 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
+const { checkSubscriptionStatus } = require('../middleware/subscription.middleware');
 const { getMaterials, createMaterial, getMaterial, updateMaterial, publishMaterial } = require('../controllers/materials.controller');
 
 // Get all materials for authenticated user
-router.get('/', authenticateToken, getMaterials);
+router.get('/', authenticateToken, checkSubscriptionStatus, getMaterials);
 
 // Get single material by ID
-router.get('/:id', authenticateToken, getMaterial);
+router.get('/:id', authenticateToken, checkSubscriptionStatus, getMaterial);
 
 // Create new material
-router.post('/', authenticateToken, createMaterial);
+router.post('/', authenticateToken, checkSubscriptionStatus, createMaterial);
 
 // Update material
-router.put('/:id', authenticateToken, updateMaterial);
+router.put('/:id', authenticateToken, checkSubscriptionStatus, updateMaterial);
 
 // Delete material
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, checkSubscriptionStatus, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -31,7 +32,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // Publish material
-router.patch('/:id/publish', authenticateToken, publishMaterial);
+router.patch('/:id/publish', authenticateToken, checkSubscriptionStatus, publishMaterial);
 
 // Get cultural content library
 router.get('/cultural/library', authenticateToken, async (req, res) => {

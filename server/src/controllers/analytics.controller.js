@@ -506,6 +506,8 @@ const getSubscriptionWarnings = async (req, res) => {
 
 // Get school usage for school admin
 const getSchoolUsage = async (req, res) => {
+  console.log('🔍 Debug - getSchoolUsage function called');
+  console.log('🔍 Debug - User:', req.user);
   try {
     const { SubscriptionPlan, Student, Class } = require('../models');
     const schoolId = req.user.schoolId;
@@ -529,24 +531,60 @@ const getSchoolUsage = async (req, res) => {
     
     const totalTeacherUsers = teacherCount + adminCount;
     
-    // Map school subscription plan to SubscriptionPlan planId
-    const planMapping = {
-      'free': 'free_trial',
-      'basic': 'basic',
-      'premium': 'professional'
+    // Define correct limits for each plan
+    const planLimits = {
+      'free': { maxStudents: 50, maxTeachers: 5, maxClasses: 10 },
+      'starter': { maxStudents: 30, maxTeachers: 3, maxClasses: 2 },
+      'basic': { maxStudents: 70, maxTeachers: 6, maxClasses: 4 },
+      'professional': { maxStudents: 150, maxTeachers: 12, maxClasses: 10 },
+      'enterprise': { maxStudents: -1, maxTeachers: -1, maxClasses: -1 }
     };
     
-    const planId = planMapping[school.subscriptionPlan] || 'free_trial';
+    const currentPlanLimits = planLimits[school.subscriptionPlan] || planLimits['free'];
+    
+    // Map to existing DB plans for features only
+    const planMapping = {
+      'free': 'free',
+      'starter': 'basic',
+      'basic': 'basic', 
+      'professional': 'premium',
+      'enterprise': 'enterprise'
+    };
+    
+    const planId = planMapping[school.subscriptionPlan] || 'free';
+    
+    console.log('🔍 Debug - School subscription plan:', school.subscriptionPlan);
+    console.log('🔍 Debug - Mapped planId:', planId);
+    
+    // Test database connection
+    const allPlans = await SubscriptionPlan.findAll();
+    console.log('🔍 Debug - All plans in database:', allPlans.map(p => ({ planId: p.planId, name: p.name })));
     
     // Get subscription plan limits
     const plan = await SubscriptionPlan.findOne({ where: { planId } });
+    console.log('🔍 Debug - Found plan:', plan ? plan.name : 'NOT FOUND');
+    console.log('🔍 Debug - Plan object:', plan ? JSON.stringify(plan.toJSON(), null, 2) : 'NULL');
+    console.log('🔍 Debug - Plan lookup result:', plan ? 'FOUND' : 'NOT FOUND');
+    console.log('🔍 Debug - About to check if plan exists...');
     if (!plan) {
+      console.log('🔍 Debug - Plan NOT found, using fallback');
       const now = new Date();
       const isActive = Boolean(school.subscriptionExpiresAt) && new Date(school.subscriptionExpiresAt) > now && ['active', 'trial', 'grace_period'].includes(school.subscriptionStatus || 'active');
-      // Fallback to default limits if plan not found
-      const maxTeachers = 5;
-      const maxStudents = 50;
-      const maxClasses = 10;
+      
+      // Get plan name based on school's subscription plan
+      const planNames = {
+        'free': 'Free Trial',
+        'starter': 'Starter Plan',
+        'basic': 'Basic Plan',
+        'professional': 'Professional Plan',
+        'premium': 'Premium Plan',
+        'enterprise': 'Enterprise Plan'
+      };
+      
+      // Use correct plan limits
+      const maxTeachers = currentPlanLimits.maxTeachers;
+      const maxStudents = currentPlanLimits.maxStudents;
+      const maxClasses = currentPlanLimits.maxClasses;
       
       const teacherPercentage = maxTeachers > 0 ? Math.round((totalTeacherUsers / maxTeachers) * 100) : 0;
       const studentPercentage = maxStudents > 0 ? Math.round((studentCount / maxStudents) * 100) : 0;
@@ -561,7 +599,7 @@ const getSchoolUsage = async (req, res) => {
       
       return res.json({
         plan: {
-          name: 'Free Trial',
+          name: planNames[school.subscriptionPlan] || 'Free Trial',
           planId: school.subscriptionPlan,
           daysRemaining: school.subscriptionExpiresAt ? daysRemaining : null,
           canActivate: !school.subscriptionExpiresAt,
@@ -600,9 +638,9 @@ const getSchoolUsage = async (req, res) => {
     }
     
     const now = new Date();
-    const maxTeachers = plan.maxTeachers;
-    const maxStudents = plan.maxStudents;
-    const maxClasses = plan.maxClasses;
+    const maxTeachers = currentPlanLimits.maxTeachers;
+    const maxStudents = currentPlanLimits.maxStudents;
+    const maxClasses = currentPlanLimits.maxClasses;
     
     const teacherPercentage = maxTeachers > 0 ? Math.round((totalTeacherUsers / maxTeachers) * 100) : 0;
     const studentPercentage = maxStudents > 0 ? Math.round((studentCount / maxStudents) * 100) : 0;
@@ -618,11 +656,28 @@ const getSchoolUsage = async (req, res) => {
     
     const isActive = Boolean(school.subscriptionExpiresAt) && new Date(school.subscriptionExpiresAt) > now && ['active', 'trial', 'grace_period'].includes(school.subscriptionStatus || 'active');
 
+    console.log('🔍 Debug - Plan details:', {
+      name: plan?.name,
+      trialDays: plan?.trialDays,
+      daysRemaining,
+      subscriptionExpiresAt: school.subscriptionExpiresAt
+    });
+    
+    // Get correct plan name based on school's subscription plan
+    const planNames = {
+      'free': 'Free Trial',
+      'starter': 'Starter Plan',
+      'basic': 'Basic Plan',
+      'professional': 'Professional Plan',
+      'premium': 'Premium Plan',
+      'enterprise': 'Enterprise Plan'
+    };
+    
     const usage = {
       plan: {
-        name: plan?.name || 'Free Trial',
+        name: planNames[school.subscriptionPlan] || plan?.name || 'Free Trial',
         planId: school.subscriptionPlan,
-        daysRemaining: school.subscriptionExpiresAt && plan.trialDays > 0 ? daysRemaining : null,
+        daysRemaining: school.subscriptionExpiresAt ? daysRemaining : null,
         canActivate: !school.subscriptionExpiresAt,
         isActive
       },

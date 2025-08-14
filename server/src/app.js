@@ -157,9 +157,22 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing middleware - exclude webhook route for raw body access
+app.use((req, res, next) => {
+  if (req.path === '/api/v1/stripe/webhook') {
+    // Skip JSON parsing for webhook route to preserve raw body
+    return next();
+  }
+  express.json({ limit: '10mb' })(req, res, next);
+});
+
+app.use((req, res, next) => {
+  if (req.path === '/api/v1/stripe/webhook') {
+    // Skip URL encoding parsing for webhook route
+    return next();
+  }
+  express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
+});
 
 // Compression middleware
 app.use(compression());
@@ -244,15 +257,6 @@ app.use('/api/v1', (req, res, next) => {
   checkMaintenanceMode(req, res, next);
 });
 
-// Apply subscription middleware to protected routes
-app.use('/api/v1', (req, res, next) => {
-  // Skip for auth routes
-  if (req.path.startsWith('/auth')) {
-    return next();
-  }
-  allowSubscriptionRoutes(req, res, next);
-});
-
 // API routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
@@ -281,6 +285,10 @@ app.use('/api/v1/student-service-preferences', studentServicePreferencesRoutes);
 app.use('/api/v1/subscription', subscriptionRoutes);
 app.use('/api/v1/admin', adminSubscriptionRoutes);
 app.use('/api/v1/admin/plans', adminPlansRoutes);
+app.use('/api/v1/stripe', require('./routes/stripe.routes'));
+app.use('/api/v1/finance-config', require('./routes/finance-config.routes'));
+app.use('/api/v1/simple-finance', require('./routes/simple-finance.routes'));
+app.use('/api/v1/school-admin-finance', require('./routes/school-admin-finance.routes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

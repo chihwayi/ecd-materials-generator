@@ -1,4 +1,5 @@
 const { School } = require('../models');
+const { updateSchoolLimits } = require('../utils/subscription.limits');
 
 const activateTrialPlan = async (req, res) => {
   try {
@@ -27,6 +28,9 @@ const activateTrialPlan = async (req, res) => {
       subscriptionStatus: 'active',
       subscriptionExpiresAt: trialExpiryDate
     });
+    
+    // Update limits based on plan
+    await updateSchoolLimits(school, 'free_trial');
     
     res.json({
       message: 'Free trial activated successfully',

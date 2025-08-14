@@ -49,6 +49,11 @@ const School = sequelize.define('School', {
     type: DataTypes.BOOLEAN,
     defaultValue: true
   },
+  trialUsed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'trial_used'
+  },
   defaultParentPassword: {
     type: DataTypes.STRING,
     defaultValue: 'parent123'

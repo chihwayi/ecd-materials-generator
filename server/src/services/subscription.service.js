@@ -112,7 +112,8 @@ class SubscriptionService {
           currentPeriodEnd: fallbackEnd,
           cancelAtPeriodEnd: false,
           isActive: true,
-          daysUntilExpiry: Math.ceil((fallbackEnd - now) / (1000 * 60 * 60 * 24))
+          daysUntilExpiry: Math.ceil((fallbackEnd - now) / (1000 * 60 * 60 * 24)),
+          trialUsed: false
         };
       }
 
@@ -131,7 +132,8 @@ class SubscriptionService {
         currentPeriodEnd,
         cancelAtPeriodEnd: status === 'cancelled',
         isActive,
-        daysUntilExpiry
+        daysUntilExpiry,
+        trialUsed: school.trialUsed || false
       };
     } catch (error) {
       console.error('Error getting subscription summary:', error);
@@ -144,7 +146,8 @@ class SubscriptionService {
         currentPeriodEnd: fallbackEnd,
         cancelAtPeriodEnd: false,
         isActive: true,
-        daysUntilExpiry: Math.ceil((fallbackEnd - now) / (1000 * 60 * 60 * 24))
+        daysUntilExpiry: Math.ceil((fallbackEnd - now) / (1000 * 60 * 60 * 24)),
+        trialUsed: false
       };
     }
   }

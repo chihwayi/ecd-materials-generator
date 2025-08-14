@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import subscriptionService, { SubscriptionPlan } from '../services/subscription.service.ts';
+import { analyticsService } from '../services/admin.service.ts';
 import { toast } from 'react-hot-toast';
+import StripePayment from '../components/StripePayment.tsx';
 
 interface PlanModalProps {
   plan: SubscriptionPlan | null;
@@ -106,6 +108,8 @@ const SubscriptionPricingPage: React.FC = () => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [trialActivated, setTrialActivated] = useState(false);
+  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -126,24 +130,28 @@ const SubscriptionPricingPage: React.FC = () => {
       
       // Check if trial is already activated by checking subscription status and plan
       if (subscriptionData) {
-        // The subscription data is flat, not nested under a 'subscription' property
-        // Trial is considered used if:
-        // 1. Status is 'trial' (active trial)
-        // 2. Status is 'active' with planName 'free' (trial was activated)
-        // 3. Has currentPeriodEnd with planName 'free' (has expiry date)
-        const hasUsedTrial = subscriptionData.status === 'trial' || 
-                            (subscriptionData.status === 'active' && subscriptionData.planName === 'free') ||
-                            (subscriptionData.currentPeriodEnd && subscriptionData.planName === 'free');
+        // Check if trial has been used from the backend trialUsed field
+        const subscription = subscriptionData.subscription || subscriptionData;
+        const hasUsedTrial = subscription.trialUsed === true;
+        
+        // Check if subscription is expired
+        const isExpired = subscription.status === 'expired' || 
+                         (subscriptionData.isActive === false && subscription.status !== 'trial');
         
         console.log('Trial detection:', {
-          status: subscriptionData.status,
-          planName: subscriptionData.planName,
+          status: subscription.status,
+          planName: subscription.planName,
           hasUsedTrial,
+          isExpired,
           subscription: subscriptionData
         });
         
         if (hasUsedTrial) {
           setTrialActivated(true);
+        }
+        
+        if (isExpired) {
+          setSubscriptionExpired(true);
         }
       }
     } catch (error) {
@@ -155,19 +163,26 @@ const SubscriptionPricingPage: React.FC = () => {
   };
 
   const handleSubscribe = async (planId: string) => {
-    try {
-      setProcessing(planId);
-      
-      const successUrl = `${window.location.origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${window.location.origin}/subscription/pricing`;
-      
-      const session = await subscriptionService.createCheckoutSession(planId, successUrl, cancelUrl);
-      
-      window.location.href = session.url;
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      toast.error('Failed to start subscription process');
-      setProcessing(null);
+    if (planId === 'free_trial') {
+      // Handle free trial activation
+      try {
+        setProcessing(planId);
+        await analyticsService.activateTrialPlan();
+        toast.success('Free trial activated successfully!');
+        navigate('/dashboard');
+      } catch (error) {
+        console.error('Error activating trial:', error);
+        toast.error('Failed to activate trial');
+      } finally {
+        setProcessing(null);
+      }
+    } else {
+      // Handle paid subscription with Stripe
+      const plan = currentPlans[planId];
+      if (plan) {
+        setSelectedPlan({ ...plan, id: planId });
+        setShowPayment(true);
+      }
     }
   };
 
@@ -232,8 +247,36 @@ const SubscriptionPricingPage: React.FC = () => {
           </p>
         </div>
 
+        {/* Subscription Expired Notice */}
+        {subscriptionExpired && (
+          <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-red-800 mb-2">
+                  ⚠️ Subscription Expired
+                </h3>
+                <p className="text-red-700 mb-3">
+                  <strong>Your school's subscription has expired.</strong> All premium features have been disabled. 
+                  Please select a new plan below to restore access to all features and continue using the system.
+                </p>
+                <div className="bg-red-100 border border-red-300 rounded-md p-3">
+                  <p className="text-sm text-red-800">
+                    <strong>What happens now?</strong> Teachers and parents will be notified that the subscription has expired. 
+                    Only school administrators can manage subscriptions.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Trial Not Available Notice */}
-        {trialActivated && (
+        {trialActivated && !subscriptionExpired && (
           <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -289,17 +332,12 @@ const SubscriptionPricingPage: React.FC = () => {
             //    - Current subscription status is 'active' with planName 'free' (trial was used)
             //    - Trial has been activated before (trialActivated state)
             if (plan.price === 0) {
-              console.log('Current subscription state:', currentSubscription);
-              // The subscription data is flat, not nested under a 'subscription' property
-              const hasUsedTrial = currentSubscription?.status === 'trial' || 
-                                  (currentSubscription?.status === 'active' && currentSubscription?.planName === 'free') ||
-                                  trialActivated;
+              // Hide free trial if it has been used
+              const hasUsedTrial = currentSubscription?.trialUsed === true;
               
               console.log('Filtering plan:', planId, {
                 price: plan.price,
-                subscriptionStatus: currentSubscription?.status,
-                subscriptionPlanName: currentSubscription?.planName,
-                trialActivated,
+                trialUsed: currentSubscription?.trialUsed,
                 hasUsedTrial,
                 shouldHide: hasUsedTrial
               });
@@ -310,8 +348,8 @@ const SubscriptionPricingPage: React.FC = () => {
             }
             return true;
           }).map(([planId, plan]) => {
-            const planIcon = planId.includes('free') ? '🆓' : planId.includes('basic') ? '🚀' : planId.includes('premium') ? '⭐' : '👑';
-            const planColor = planId.includes('free') ? 'gray' : planId.includes('basic') ? 'blue' : planId.includes('premium') ? 'purple' : 'indigo';
+              const planIcon = planId.includes('free') ? '🆓' : planId.includes('starter') ? '👑' : planId.includes('basic') ? '🚀' : planId.includes('professional') ? '⭐' : '👑';
+  const planColor = planId.includes('free') ? 'gray' : planId.includes('starter') ? 'purple' : planId.includes('basic') ? 'blue' : planId.includes('professional') ? 'indigo' : 'purple';
             
             return (
               <div key={planId} className={`bg-white rounded-xl shadow-lg border-2 hover:shadow-xl transition-all duration-300 ${
@@ -395,12 +433,59 @@ const SubscriptionPricingPage: React.FC = () => {
         
         <PlanModal
           plan={selectedPlan}
-          isOpen={!!selectedPlan}
+          isOpen={!!selectedPlan && !showPayment}
           onClose={() => setSelectedPlan(null)}
           onSubscribe={handleSubscribe}
           processing={processing}
           isCurrentPlan={selectedPlan ? isCurrentPlan(selectedPlan.id) : false}
         />
+        
+        {/* Stripe Payment Modal */}
+        {showPayment && selectedPlan && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Complete Payment</h2>
+                      <p className="text-sm text-gray-600">Secure payment powered by Stripe</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowPayment(false)} 
+                    className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors"
+                  >
+                    <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Modal Content */}
+              <div className="px-6 py-6">
+                <StripePayment
+                  planId={selectedPlan.id}
+                  planName={selectedPlan.name}
+                  amount={selectedPlan.price}
+                  onSuccess={() => {
+                    setShowPayment(false);
+                    toast.success('Subscription activated successfully!');
+                    navigate('/dashboard');
+                  }}
+                  onCancel={() => setShowPayment(false)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

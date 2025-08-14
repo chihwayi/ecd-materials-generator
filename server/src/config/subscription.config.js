@@ -27,17 +27,45 @@ const subscriptionPlans = {
       customTemplates: 0
     }
   },
-  basic: {
-    id: 'price_basic_monthly',
-    name: 'Basic Plan',
-    price: 29.99,
+  starter: {
+    id: 'price_starter_monthly',
+    name: 'Starter Plan',
+    price: 15.99,
     currency: 'usd',
     interval: 'month',
     trialDays: 0,
     features: {
-      maxStudents: 200,
-      maxTeachers: 15,
-      maxClasses: 25,
+      maxStudents: 30,
+      maxTeachers: 3,
+      maxClasses: 2,
+      materials: true,
+      templates: true,
+      assignments: true,
+      basicAnalytics: true,
+      financeModule: false,
+      advancedAnalytics: false,
+      prioritySupport: false,
+      customBranding: false,
+      apiAccess: false,
+      whiteLabeling: false
+    },
+    limits: {
+      storageGB: 5,
+      monthlyExports: 10,
+      customTemplates: 2
+    }
+  },
+  basic: {
+    id: 'price_basic_monthly',
+    name: 'Basic Plan',
+    price: 49.99,
+    currency: 'usd',
+    interval: 'month',
+    trialDays: 0,
+    features: {
+      maxStudents: 70,
+      maxTeachers: 6,
+      maxClasses: 4,
       materials: true,
       templates: true,
       assignments: true,
@@ -55,17 +83,17 @@ const subscriptionPlans = {
       customTemplates: 5
     }
   },
-  premium: {
-    id: 'price_premium_monthly',
-    name: 'Premium Plan',
-    price: 79.99,
+  professional: {
+    id: 'price_professional_monthly',
+    name: 'Professional Plan',
+    price: 99.99,
     currency: 'usd',
     interval: 'month',
     trialDays: 0,
     features: {
-      maxStudents: 500,
-      maxTeachers: 50,
-      maxClasses: 100,
+      maxStudents: 150,
+      maxTeachers: 12,
+      maxClasses: 10,
       materials: true,
       templates: true,
       assignments: true,
@@ -86,7 +114,7 @@ const subscriptionPlans = {
   enterprise: {
     id: 'price_enterprise_monthly',
     name: 'Enterprise Plan',
-    price: 199.99,
+    price: 129.99,
     currency: 'usd',
     interval: 'month',
     trialDays: 0,
@@ -115,30 +143,40 @@ const subscriptionPlans = {
 
 // Annual plans with 20% discount
 const annualPlans = {
+  starter: {
+    id: 'price_starter_yearly',
+    name: 'Starter Plan (Annual)',
+    price: 153.50, // 15.99 * 12 * 0.8 (20% discount)
+    currency: 'usd',
+    interval: 'year',
+    trialDays: 0,
+    features: subscriptionPlans.starter.features,
+    limits: subscriptionPlans.starter.limits
+  },
   basic: {
     id: 'price_basic_yearly',
     name: 'Basic Plan (Annual)',
-    price: 287.90, // 29.99 * 12 * 0.8 (20% discount)
+    price: 479.90, // 49.99 * 12 * 0.8 (20% discount)
     currency: 'usd',
     interval: 'year',
     trialDays: 0,
     features: subscriptionPlans.basic.features,
     limits: subscriptionPlans.basic.limits
   },
-  premium: {
-    id: 'price_premium_yearly',
-    name: 'Premium Plan (Annual)',
-    price: 767.90, // 79.99 * 12 * 0.8 (20% discount)
+  professional: {
+    id: 'price_professional_yearly',
+    name: 'Professional Plan (Annual)',
+    price: 959.90, // 99.99 * 12 * 0.8 (20% discount)
     currency: 'usd',
     interval: 'year',
     trialDays: 0,
-    features: subscriptionPlans.premium.features,
-    limits: subscriptionPlans.premium.limits
+    features: subscriptionPlans.professional.features,
+    limits: subscriptionPlans.professional.limits
   },
   enterprise: {
     id: 'price_enterprise_yearly',
     name: 'Enterprise Plan (Annual)',
-    price: 1919.90, // 199.99 * 12 * 0.8 (20% discount)
+    price: 1247.90, // 129.99 * 12 * 0.8 (20% discount)
     currency: 'usd',
     interval: 'year',
     trialDays: 0,
@@ -150,15 +188,18 @@ const annualPlans = {
 // Stripe product and price IDs
 const stripeConfig = {
   products: {
+    starter: 'prod_starter_plan',
     basic: 'prod_basic_plan',
-    premium: 'prod_premium_plan',
+    professional: 'prod_professional_plan',
     enterprise: 'prod_enterprise_plan'
   },
   prices: {
+    starter_monthly: 'price_starter_monthly',
+    starter_yearly: 'price_starter_yearly',
     basic_monthly: 'price_basic_monthly',
     basic_yearly: 'price_basic_yearly',
-    premium_monthly: 'price_premium_monthly',
-    premium_yearly: 'price_premium_yearly',
+    professional_monthly: 'price_professional_monthly',
+    professional_yearly: 'price_professional_yearly',
     enterprise_monthly: 'price_enterprise_monthly',
     enterprise_yearly: 'price_enterprise_yearly'
   }

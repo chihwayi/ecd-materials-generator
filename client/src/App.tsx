@@ -39,6 +39,8 @@ import SchoolSettingsPage from './pages/SchoolSettingsPage';
 import SignatureManagementPage from './pages/SignatureManagementPage.tsx';
 import FinancialReportsPage from './pages/FinancialReportsPage.tsx';
 import ReceiptsManagementPage from './pages/ReceiptsManagementPage.tsx';
+import FinanceConfigurationPage from './pages/FinanceConfigurationPage.tsx';
+import SimpleFinanceManagementPage from './pages/SimpleFinanceManagementPage.tsx';
 import UserManagementPage from './pages/admin/UserManagementPage.tsx';
 import SchoolManagementPage from './pages/admin/SchoolManagementPage.tsx';
 import SystemAnalyticsPage from './pages/admin/SystemAnalyticsPage.tsx';
@@ -418,7 +420,7 @@ const AppContent: React.FC = () => {
             element={
               <SubscriptionProtectedRoute>
                 <RoleProtectedRoute allowedRoles={['school_admin']}>
-                  <SchoolAdminFinancePage />
+                  <Navigate to="/finance-configuration" replace />
                 </RoleProtectedRoute>
               </SubscriptionProtectedRoute>
             }
@@ -566,9 +568,34 @@ const AppContent: React.FC = () => {
           <Route
             path="/finance-configuration"
             element={
-              <RoleProtectedRoute allowedRoles={['finance', 'school_admin']}>
-                <FinanceRedirect />
-              </RoleProtectedRoute>
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <FinanceConfigurationPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
+            }
+          />
+          <Route
+            path="/simple-finance"
+            element={
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin', 'finance_manager']}>
+                  <SimpleFinanceManagementPage />
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
+            }
+          />
+          <Route
+            path="/finance-analytics"
+            element={
+              <SubscriptionProtectedRoute>
+                <RoleProtectedRoute allowedRoles={['school_admin']}>
+                  <div className="p-8 text-center">
+                    <h1 className="text-2xl font-bold">Financial Analytics</h1>
+                    <p className="text-gray-600 mt-2">Comprehensive revenue reports and analytics coming soon...</p>
+                  </div>
+                </RoleProtectedRoute>
+              </SubscriptionProtectedRoute>
             }
           />
           <Route

@@ -130,8 +130,8 @@ router.post('/schools', authenticateToken, async (req, res) => {
       contactEmail,
       contactPhone,
       subscriptionPlan: subscriptionPlan || 'free',
-      maxTeachers: maxTeachers || 5,
-      maxStudents: maxStudents || 100,
+      maxTeachers: 1, // Only school admin initially
+      maxStudents: 0, // No students until trial/subscription activated
       primaryColor: primaryColor || '#2563eb',
       secondaryColor: secondaryColor || '#1d4ed8',
       accentColor: accentColor || '#fbbf24',
@@ -753,6 +753,70 @@ router.post('/announcements', adminOnly, async (req, res) => {
   } catch (error) {
     console.error('Send announcement error:', error);
     res.status(500).json({ message: 'Failed to send announcement' });
+  }
+});
+
+// Get payment history for financial monitoring
+router.get('/payments', adminOnly, async (req, res) => {
+  try {
+    const { page = 1, limit = 50, schoolId, planId, status } = req.query;
+    const offset = (page - 1) * limit;
+    
+    const where = {};
+    if (schoolId) where.schoolId = schoolId;
+    if (planId) where.planId = planId;
+    if (status) where.status = status;
+    
+    const { count, rows: payments } = await SubscriptionPayment.findAndCountAll({
+      where,
+      include: [
+        {
+          model: School,
+          attributes: ['id', 'name', 'contactEmail'],
+          required: true
+        },
+        {
+          model: require('../models').SubscriptionPlan,
+          attributes: ['name', 'price', 'currency', 'interval'],
+          required: false
+        }
+      ],
+      order: [['paymentDate', 'DESC']],
+      limit: parseInt(limit),
+      offset
+    });
+    
+    // Calculate financial stats
+    const totalRevenue = await SubscriptionPayment.sum('amount', { where: { status: 'completed' } });
+    const monthlyRevenue = await SubscriptionPayment.sum('amount', {
+      where: {
+        status: 'completed',
+        paymentDate: {
+          [Op.gte]: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+        }
+      }
+    });
+    
+    const stats = {
+      totalPayments: count,
+      totalRevenue: totalRevenue || 0,
+      monthlyRevenue: monthlyRevenue || 0,
+      averagePayment: count > 0 ? (totalRevenue || 0) / count : 0
+    };
+    
+    res.json({
+      payments,
+      stats,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get payments error:', error);
+    res.status(500).json({ message: 'Failed to fetch payment data' });
   }
 });
 

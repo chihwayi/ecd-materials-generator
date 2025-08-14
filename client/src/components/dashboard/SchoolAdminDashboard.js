@@ -494,28 +494,78 @@ const SchoolAdminDashboard = ({ user }) => {
             </div>
           </div>
 
-          {/* Subscription & Payment Management */}
+          {/* Finance Management */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
             <div className="flex items-center space-x-3 mb-6">
-              <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
                 <span className="text-xl text-white">💰</span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Subscription & Billing</h2>
-                <p className="text-sm text-gray-600">Manage your subscription and payments</p>
+                <h2 className="text-xl font-bold text-gray-900">Finance Management</h2>
+                <p className="text-sm text-gray-600">Configure fees and manage school finances</p>
               </div>
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               <Link
-                to="/subscription/pricing"
+                to="/finance-configuration"
+                className="group bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-300 border border-blue-200 hover:shadow-lg"
+              >
+                <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="text-2xl text-white">⚙️</span>
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2 text-lg">Finance Configuration</h3>
+                <p className="text-sm text-gray-600">Set up fees, services, and payment plans</p>
+                <div className="mt-3 text-blue-600 text-sm font-medium group-hover:text-blue-700">Configure →</div>
+              </Link>
+
+              <Link
+                to="/finance-analytics"
+                className="group bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-300 border border-green-200 hover:shadow-lg"
+              >
+                <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="text-2xl text-white">📊</span>
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2 text-lg">Financial Analytics</h3>
+                <p className="text-sm text-gray-600">View revenue reports and financial insights</p>
+                <div className="mt-3 text-green-600 text-sm font-medium group-hover:text-green-700">View Reports →</div>
+              </Link>
+
+              <Link
+                to="/simple-finance"
                 className="group bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl hover:from-purple-100 hover:to-purple-200 transition-all duration-300 border border-purple-200 hover:shadow-lg"
               >
                 <div className="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <span className="text-2xl text-white">💳</span>
                 </div>
+                <h3 className="font-bold text-gray-900 mb-2 text-lg">Payment Management</h3>
+                <p className="text-sm text-gray-600">Record payments and track student balances</p>
+                <div className="mt-3 text-purple-600 text-sm font-medium group-hover:text-purple-700">Manage Payments →</div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Subscription & Billing */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                <span className="text-xl text-white">💳</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Subscription & Billing</h2>
+                <p className="text-sm text-gray-600">Manage your platform subscription</p>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <Link
+                to="/subscription/pricing"
+                className="group bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-xl hover:from-indigo-100 hover:to-indigo-200 transition-all duration-300 border border-indigo-200 hover:shadow-lg"
+              >
+                <div className="w-14 h-14 bg-indigo-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <span className="text-2xl text-white">📋</span>
+                </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">Subscription Plans</h3>
                 <p className="text-sm text-gray-600">View and upgrade subscription packages</p>
-                <div className="mt-3 text-purple-600 text-sm font-medium group-hover:text-purple-700">View plans →</div>
+                <div className="mt-3 text-indigo-600 text-sm font-medium group-hover:text-indigo-700">View plans →</div>
               </Link>
 
               <Link
@@ -523,7 +573,7 @@ const SchoolAdminDashboard = ({ user }) => {
                 className="group bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl hover:from-yellow-100 hover:to-yellow-200 transition-all duration-300 border border-yellow-200 hover:shadow-lg"
               >
                 <div className="w-14 h-14 bg-yellow-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <span className="text-2xl text-white">📊</span>
+                  <span className="text-2xl text-white">⚙️</span>
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">Manage Subscription</h3>
                 <p className="text-sm text-gray-600">View billing, payments and subscription details</p>

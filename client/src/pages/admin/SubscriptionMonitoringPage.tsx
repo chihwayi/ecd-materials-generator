@@ -150,67 +150,135 @@ const SubscriptionMonitoringPage: React.FC = () => {
           </div>
         )}
 
-        {/* Stats Cards */}
+        {/* Enhanced Financial Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+          <>
+            {/* Primary Revenue Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
+                    <p className="text-xs text-gray-500">{stats.totalPayments} transactions</p>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Subscriptions</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalSubscriptions}</p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.monthlyRevenue)}</p>
+                    <p className="text-xs text-gray-500">MRR from active subs</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Annual Projection</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.annualProjectedRevenue)}</p>
+                    <p className="text-xs text-gray-500">Based on current MRR</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Active Subscriptions</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.activeSubscriptions}</p>
+                    <p className="text-xs text-gray-500">{stats.conversionRate}% conversion rate</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active Subscriptions</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.activeSubscriptions}</p>
+            {/* Secondary Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Trial Subscriptions</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.trialSubscriptions}</p>
+                    <p className="text-xs text-gray-500">Free trials active</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Trial Subscriptions</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.trialSubscriptions}</p>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Expired Subscriptions</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.expiredSubscriptions || 0}</p>
+                    <p className="text-xs text-gray-500">Need attention</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-teal-100 rounded-lg">
+                    <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Avg Revenue/School</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.avgRevenuePerSchool)}</p>
+                    <p className="text-xs text-gray-500">ARPU</p>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {stats.monthlyRevenue > 0 ? formatCurrency(stats.monthlyRevenue) : 'Restricted'}
-                  </p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-pink-100 rounded-lg">
+                    <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Recent Revenue</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.recentRevenue)}</p>
+                    <p className="text-xs text-gray-500">Last 30 days</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Filters and Search */}
@@ -302,7 +370,7 @@ const SubscriptionMonitoringPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {subscription.amount > 0 ? formatCurrency(subscription.amount) : 'Restricted'}
+                      {subscription.amount > 0 ? formatCurrency(subscription.amount) : 'Free'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
@@ -345,27 +413,72 @@ const SubscriptionMonitoringPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Plan Distribution Chart */}
+        {/* Enhanced Plan Distribution and Revenue Breakdown */}
         {stats && stats.planDistribution && (
-          <div className="mt-8 bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Plan Distribution</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(stats.planDistribution).map(([plan, count]) => (
-                <div key={plan} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700 capitalize">{plan}</span>
-                    <span className="text-lg font-bold text-gray-900">{count}</span>
-                  </div>
-                  <div className="mt-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full"
-                        style={{ width: `${(count / stats.totalSubscriptions) * 100}%` }}
-                      ></div>
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Plan Distribution */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Plan Distribution</h3>
+              <div className="space-y-4">
+                {Object.entries(stats.planDistribution).map(([plan, count]) => {
+                  const percentage = (count / stats.totalSubscriptions) * 100;
+                  const planColors = {
+                    'free': 'bg-gray-500',
+                    'starter': 'bg-purple-500',
+                    'basic': 'bg-blue-500',
+                    'professional': 'bg-indigo-500',
+                    'enterprise': 'bg-green-500'
+                  };
+                  return (
+                    <div key={plan} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700 capitalize">{plan}</span>
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-gray-900">{count}</span>
+                          <span className="text-xs text-gray-500 ml-2">({percentage.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${planColors[plan] || 'bg-gray-500'}`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Financial Summary */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Summary</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-gray-600">Total Revenue (All Time)</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(stats.totalRevenue)}</span>
                 </div>
-              ))}
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-gray-600">Monthly Recurring Revenue</span>
+                  <span className="font-semibold text-green-600">{formatCurrency(stats.monthlyRevenue)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-gray-600">Annual Projection</span>
+                  <span className="font-semibold text-blue-600">{formatCurrency(stats.annualProjectedRevenue)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-gray-600">Average Revenue Per User</span>
+                  <span className="font-semibold text-purple-600">{formatCurrency(stats.avgRevenuePerSchool)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="text-sm text-gray-600">Conversion Rate</span>
+                  <span className="font-semibold text-indigo-600">{stats.conversionRate}%</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-600">Total Transactions</span>
+                  <span className="font-semibold text-gray-900">{stats.totalPayments}</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
