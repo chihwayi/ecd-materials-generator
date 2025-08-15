@@ -15,7 +15,10 @@
     "migrate:undo": "sequelize-cli db:migrate:undo",
     "seed": "sequelize-cli db:seed:all",
     "db:create": "sequelize-cli db:create",
-    "db:drop": "sequelize-cli db:drop"
+    "db:drop": "sequelize-cli db:drop",
+    "db:setup": "node setup-database.js",
+    "db:reset": "sequelize-cli db:drop && sequelize-cli db:create && node setup-database.js",
+    "db:check": "node check-database.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",

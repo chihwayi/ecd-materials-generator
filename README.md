@@ -16,8 +16,21 @@ This will automatically start:
 
 ### Manual Setup (First Time)
 ```bash
-npm run setup  # Install all dependencies
-npm run dev    # Start all services
+npm run setup     # Install all dependencies
+npm run db:setup  # Setup database (migrations + seeds)
+npm run dev       # Start all services
+```
+
+### Database Setup Only
+```bash
+cd server
+npm run db:setup  # Run migrations and seeds
+```
+
+### Reset Database (Clean Start)
+```bash
+cd server
+npm run db:reset  # Drop, create, migrate, and seed
 ```
 
 ### Stop All Services
@@ -122,11 +135,12 @@ ecd-materials-generator/
 
 ### Database Setup
 ```bash
-# Run migrations
-cd server && npm run migrate
+# One-command setup (recommended)
+cd server && npm run db:setup
 
-# Seed initial data
-npm run seed
+# Or manual steps
+npm run migrate  # Run migrations
+npm run seed     # Seed initial data
 ```
 
 ### API Endpoints
