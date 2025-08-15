@@ -246,7 +246,7 @@ const SchoolManagementPage: React.FC = () => {
         <div className="flex items-center space-x-3">
           {school.logoUrl && (
             <img 
-              src={school.logoUrl.startsWith('http') ? school.logoUrl : `http://localhost:5000${school.logoUrl}`} 
+              src={school.logoUrl.startsWith('http') ? school.logoUrl : `${process.env.REACT_APP_API_URL?.replace('/api/v1', '') || 'http://localhost:5000'}${school.logoUrl}`} 
               alt="School Logo" 
               className="w-8 h-8 object-contain rounded"
             />

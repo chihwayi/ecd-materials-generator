@@ -111,7 +111,7 @@ const Header: React.FC = () => {
               <div className={`w-10 h-10 ${styles.logoBg} rounded-xl flex items-center justify-center transition-all duration-200 overflow-hidden`}>
                 {schoolBranding.logoUrl ? (
                   <img
-                    src={schoolBranding.logoUrl.startsWith('/uploads/') ? `http://localhost:5000${schoolBranding.logoUrl}` : schoolBranding.logoUrl}
+                    src={schoolBranding.logoUrl.startsWith('/uploads/') ? `${process.env.REACT_APP_API_URL?.replace('/api/v1', '')}${schoolBranding.logoUrl}` : schoolBranding.logoUrl}
                     alt="School Logo"
                     className="object-contain w-full h-full"
                     onError={(e) => {

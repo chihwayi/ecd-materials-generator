@@ -328,22 +328,28 @@ const SubscriptionPricingPage: React.FC = () => {
             // Hide free trial if:
             // 1. It's a free plan (price === 0)
             // 2. AND either:
-            //    - Current subscription status is 'trial' (active trial)
-            //    - Current subscription status is 'active' with planName 'free' (trial was used)
-            //    - Trial has been activated before (trialActivated state)
+            //    - Currently on trial (status === 'trial')
+            //    - Trial has been used before (trialUsed === true)
+            //    - Trial activated state is true
             if (plan.price === 0) {
-              // Hide free trial if it has been used
-              const hasUsedTrial = currentSubscription?.trialUsed === true;
+              const subscription = currentSubscription?.subscription || currentSubscription;
+              const isCurrentlyOnTrial = subscription?.status === 'trial' || subscription?.planName === 'free';
+              const hasUsedTrial = subscription?.trialUsed === true || trialActivated;
               
-              console.log('Filtering plan:', planId, {
+              console.log('Filtering free trial plan:', planId, {
                 price: plan.price,
-                trialUsed: currentSubscription?.trialUsed,
+                currentStatus: subscription?.status,
+                planName: subscription?.planName,
+                trialUsed: subscription?.trialUsed,
+                trialActivated,
+                isCurrentlyOnTrial,
                 hasUsedTrial,
-                shouldHide: hasUsedTrial
+                shouldHide: isCurrentlyOnTrial || hasUsedTrial
               });
               
-              if (hasUsedTrial) {
-                return false; // Hide the trial plan
+              // Hide if currently on trial OR trial has been used
+              if (isCurrentlyOnTrial || hasUsedTrial) {
+                return false;
               }
             }
             return true;

@@ -57,7 +57,7 @@ const SystemSettingsPage: React.FC = () => {
       setBackupLoading(true);
       
       // Fetch complete database backup from backend
-      const response = await fetch('http://localhost:5000/api/v1/admin/backup/complete', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1'}/admin/backup/complete`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -145,7 +145,7 @@ const SystemSettingsPage: React.FC = () => {
 
   const fetchMaintenanceStatus = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/admin/maintenance/status', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1'}/admin/maintenance/status`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await response.json();
@@ -157,7 +157,7 @@ const SystemSettingsPage: React.FC = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/admin/settings', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1'}/admin/settings`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await response.json();
@@ -175,7 +175,7 @@ const SystemSettingsPage: React.FC = () => {
   const handleSaveSettings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/v1/admin/settings', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1'}/admin/settings`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -199,7 +199,7 @@ const SystemSettingsPage: React.FC = () => {
   const handleToggleMaintenance = async () => {
     try {
       const endpoint = maintenanceMode ? 'disable' : 'enable';
-      const response = await fetch(`http://localhost:5000/api/v1/admin/maintenance/${endpoint}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1'}/admin/maintenance/${endpoint}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
@@ -220,7 +220,7 @@ const SystemSettingsPage: React.FC = () => {
   const handleClearCache = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/v1/admin/cache/clear', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1'}/admin/cache/clear`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });

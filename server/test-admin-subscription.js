@@ -60,5 +60,5 @@ app.get('/test', async (req, res) => {
 
 app.listen(3001, () => {
   console.log('Test server running on port 3001');
-  console.log('Visit http://localhost:3001/test to run the test');
+  console.log(`Visit http://localhost:${process.env.PORT || 3001}/test to run the test`);
 }); 

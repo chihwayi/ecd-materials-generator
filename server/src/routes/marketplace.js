@@ -11,7 +11,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Get marketplace templates
 router.get('/browse', authenticateToken, async (req, res) => {
   try {
-    const response = await axios.get('http://localhost:5001/api/templates');
+    const response = await axios.get(`http://localhost:${process.env.TEMPLATE_STUDIO_PORT || 5001}/api/templates`);
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch marketplace templates' });
@@ -22,7 +22,7 @@ router.get('/browse', authenticateToken, async (req, res) => {
 router.post('/install/:templateId', authenticateToken, async (req, res) => {
   try {
     // Download template from marketplace
-    const response = await axios.get(`http://localhost:5001/api/templates/${req.params.templateId}/download`, {
+    const response = await axios.get(`http://localhost:${process.env.TEMPLATE_STUDIO_PORT || 5001}/api/templates/${req.params.templateId}/download`, {
       responseType: 'arraybuffer'
     });
     

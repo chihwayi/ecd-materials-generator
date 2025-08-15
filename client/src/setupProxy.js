@@ -5,7 +5,7 @@ module.exports = function(app) {
   app.use(
     '/uploads',
     createProxyMiddleware({
-      target: 'http://localhost:5000',
+      target: process.env.REACT_APP_API_URL?.replace('/api/v1', '') || 'http://localhost:5000',
       changeOrigin: true,
       logLevel: 'debug',
     })
@@ -15,7 +15,7 @@ module.exports = function(app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://localhost:5000',
+      target: process.env.REACT_APP_API_URL?.replace('/api/v1', '') || 'http://localhost:5000',
       changeOrigin: true,
     })
   );

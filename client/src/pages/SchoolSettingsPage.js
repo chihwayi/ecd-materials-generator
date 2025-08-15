@@ -261,7 +261,7 @@ const SchoolSettingsPage = () => {
                     <div className="flex items-center space-x-4">
       {currentLogo && !logoError ? (
         <img
-          src={currentLogo.startsWith('/uploads/') ? `http://localhost:5000${currentLogo}` : currentLogo}
+          src={currentLogo.startsWith('/uploads/') ? `${process.env.REACT_APP_API_URL?.replace('/api/v1', '') || 'http://localhost:5000'}${currentLogo}` : currentLogo}
           alt="School Logo"
           className="w-16 h-16 object-contain border border-gray-200 rounded"
           onError={() => setLogoError(true)}
@@ -301,7 +301,7 @@ const SchoolSettingsPage = () => {
                     <div className="flex items-center space-x-4">
                       {currentFavicon && (
                         <img 
-                          src={currentFavicon.startsWith('/uploads/') ? `http://localhost:5000${currentFavicon}` : currentFavicon} 
+                          src={currentFavicon.startsWith('/uploads/') ? `${process.env.REACT_APP_API_URL?.replace('/api/v1', '') || 'http://localhost:5000'}${currentFavicon}` : currentFavicon} 
                           alt="Favicon" 
                           className="w-8 h-8 object-contain border border-gray-200 rounded"
                         />
