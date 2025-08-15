@@ -73,6 +73,7 @@ interface FeeStructure {
 }
 
 const FinanceDashboardPage: React.FC = () => {
+  console.log('NEW FINANCE DASHBOARD LOADING - v2.0');
   const { user } = useSelector((state: RootState) => state.auth);
   const [studentsByClass, setStudentsByClass] = useState<Record<string, Student[]>>({});
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -119,7 +120,7 @@ const FinanceDashboardPage: React.FC = () => {
 
   const fetchAllPayments = async () => {
     try {
-      const response = await api.get('/fees/payments');
+      const response = await api.get('/finance/payments');
       setAllPayments(response.data);
     } catch (error) {
       console.error('Error fetching all payments:', error);
@@ -174,7 +175,7 @@ const FinanceDashboardPage: React.FC = () => {
   const fetchFeeStructures = async () => {
     try {
       console.log('Fetching fee structures...');
-      const response = await api.get('/fees/structures');
+      const response = await api.get('/finance/fee-structures');
       console.log('Fee structures response:', response.data);
       setFeeStructures(response.data);
     } catch (error) {
@@ -199,7 +200,7 @@ const FinanceDashboardPage: React.FC = () => {
       setStudentFees(response.data.fees || []);
       
       // Also fetch all payments for this student
-      const paymentsResponse = await api.get('/fees/payments');
+      const paymentsResponse = await api.get('/finance/payments');
       console.log('Payments response:', paymentsResponse.data);
       
       // Filter payments for this specific student
@@ -239,7 +240,7 @@ const FinanceDashboardPage: React.FC = () => {
 
       console.log('Payment payload:', paymentPayload);
 
-      const response = await api.post('/fees/payments', paymentPayload);
+      const response = await api.post('/finance/payments', paymentPayload);
       console.log('Payment recorded successfully:', response.data);
 
       setShowPaymentModal(false);

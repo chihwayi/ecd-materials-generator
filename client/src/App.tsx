@@ -40,7 +40,7 @@ import SignatureManagementPage from './pages/SignatureManagementPage.tsx';
 import FinancialReportsPage from './pages/FinancialReportsPage.tsx';
 import ReceiptsManagementPage from './pages/ReceiptsManagementPage.tsx';
 import FinanceConfigurationPage from './pages/FinanceConfigurationPage.tsx';
-import SimpleFinanceManagementPage from './pages/SimpleFinanceManagementPage.tsx';
+// import SimpleFinanceManagementPage from './pages/SimpleFinanceManagementPage.tsx'; // REMOVED - using new FinanceDashboardPage
 import UserManagementPage from './pages/admin/UserManagementPage.tsx';
 import SchoolManagementPage from './pages/admin/SchoolManagementPage.tsx';
 import SystemAnalyticsPage from './pages/admin/SystemAnalyticsPage.tsx';
@@ -580,7 +580,7 @@ const AppContent: React.FC = () => {
             element={
               <SubscriptionProtectedRoute>
                 <RoleProtectedRoute allowedRoles={['school_admin', 'finance_manager']}>
-                  <SimpleFinanceManagementPage />
+                  <FinanceDashboardPage />
                 </RoleProtectedRoute>
               </SubscriptionProtectedRoute>
             }

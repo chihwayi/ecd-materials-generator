@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticateToken, requireRole } = require('../middleware/auth.middleware');
-const { Student, StudentFee, FeePayment, FeeStructure, User, Class } = require('../models');
+const { Student, StudentFee, FeePayment, User, Class } = require('../models');
+const FeeStructure = require('../models/FeeStructure');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database.config');
 const bcrypt = require('bcryptjs');
@@ -124,53 +125,85 @@ router.get('/students/:studentId/fees', authenticateToken, requireRole(['finance
   }
 });
 
-// Record a payment
+// Record a payment (updated to work with new fee structure)
 router.post('/payments', authenticateToken, requireRole(['finance']), async (req, res) => {
   try {
-    const { studentFeeId, amount, paymentMethod, receiptNumber, notes } = req.body;
+    const { studentId, feeStructureId, amount, paymentMethod, paymentDate, academicYear, receiptNumber, notes } = req.body;
 
-    // Validate student fee exists
-    const studentFee = await StudentFee.findOne({
-      where: { id: studentFeeId },
-      include: [
-        {
-          model: Student,
-          as: 'student',
-          where: { schoolId: req.user.schoolId },
-          attributes: []
-        }
-      ]
+    // Validate required fields
+    if (!studentId || !feeStructureId || !amount || !paymentMethod) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Verify student belongs to the school
+    const student = await Student.findOne({
+      where: { 
+        id: studentId,
+        schoolId: req.user.schoolId 
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Verify fee structure belongs to the school
+    const { FeeStructure } = require('../models');
+    const feeStructure = await FeeStructure.findOne({
+      where: { 
+        id: feeStructureId,
+        schoolId: req.user.schoolId 
+      }
+    });
+
+    if (!feeStructure) {
+      return res.status(404).json({ error: 'Fee structure not found' });
+    }
+
+    // First, find or create a StudentFee record
+    let studentFee = await StudentFee.findOne({
+      where: {
+        studentId,
+        feeStructureId,
+        schoolId: req.user.schoolId
+      }
     });
 
     if (!studentFee) {
-      return res.status(404).json({ error: 'Student fee not found' });
+      // Create a new StudentFee record
+      studentFee = await StudentFee.create({
+        studentId,
+        feeStructureId,
+        schoolId: req.user.schoolId,
+        amount: parseFloat(feeStructure.amount),
+        paidAmount: 0,
+        status: 'not_paid',
+        academicYear: academicYear || new Date().getFullYear().toString(),
+        paymentType: feeStructure.frequency === 'monthly' ? 'monthly' : 'term'
+      });
     }
 
-    // Create payment record
+    // Create the payment record
     const payment = await FeePayment.create({
-      studentFeeId,
-      amount,
+      studentFeeId: studentFee.id,
+      amount: parseFloat(amount),
       paymentMethod,
+      paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+      academicYear: academicYear || new Date().getFullYear().toString(),
       receiptNumber,
       notes,
       recordedBy: req.user.id,
-      paymentDate: new Date()
+      schoolId: req.user.schoolId
     });
 
-    // Update student fee paid amount
+    // Update the StudentFee record with the new paid amount
     const newPaidAmount = parseFloat(studentFee.paidAmount) + parseFloat(amount);
-    const totalAmount = parseFloat(studentFee.amount);
+    const newStatus = newPaidAmount >= parseFloat(studentFee.amount) ? 'fully_paid' : 
+                     newPaidAmount > 0 ? 'partially_paid' : 'not_paid';
     
-    let status = 'not_paid';
-    if (newPaidAmount >= totalAmount) {
-      status = 'fully_paid';
-    } else if (newPaidAmount > 0) {
-      status = 'partially_paid';
-    }
-
     await studentFee.update({
       paidAmount: newPaidAmount,
-      status
+      status: newStatus
     });
 
     // Fetch updated payment with associations
@@ -188,7 +221,7 @@ router.post('/payments', authenticateToken, requireRole(['finance']), async (req
             {
               model: FeeStructure,
               as: 'feeStructure',
-              attributes: ['name']
+              attributes: ['name', 'type']
             }
           ]
         },
@@ -205,21 +238,19 @@ router.post('/payments', authenticateToken, requireRole(['finance']), async (req
       const { Receipt } = require('../models');
       const generateReceiptNumber = require('../controllers/receipts.controller').generateReceiptNumber;
       
-      const receiptNumber = await generateReceiptNumber(req.user.schoolId);
+      const receiptNum = await generateReceiptNumber(req.user.schoolId);
       
       await Receipt.create({
-        receiptNumber,
+        receiptNumber: receiptNum,
         paymentId: payment.id,
         schoolId: req.user.schoolId,
-        studentId: studentFee.studentId,
-        amount: amount,
+        studentId: studentId,
+        amount: parseFloat(amount),
         paymentMethod: paymentMethod,
-        paymentDate: new Date(),
-        academicYear: studentFee.academicYear,
-        term: studentFee.term,
-        month: studentFee.month,
-        feeStructureName: studentFee.feeStructure?.name || 'Unknown',
-        studentName: `${studentFee.student?.firstName} ${studentFee.student?.lastName}`,
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+        academicYear: academicYear || new Date().getFullYear().toString(),
+        feeStructureName: feeStructure.name,
+        studentName: `${student.firstName} ${student.lastName}`,
         recordedBy: req.user.id,
         recordedByName: `${req.user.firstName} ${req.user.lastName}`,
         notes: notes
@@ -229,7 +260,10 @@ router.post('/payments', authenticateToken, requireRole(['finance']), async (req
       // Don't fail the payment if receipt creation fails
     }
 
-    res.status(201).json(createdPayment);
+    res.status(201).json({
+      message: 'Payment recorded successfully',
+      payment: createdPayment
+    });
   } catch (error) {
     console.error('Error recording payment:', error);
     res.status(500).json({ error: 'Failed to record payment' });
@@ -241,7 +275,7 @@ router.get('/payments', authenticateToken, requireRole(['finance']), async (req,
   try {
     const { studentId, startDate, endDate, paymentMethod, status } = req.query;
     
-    let whereClause = {};
+    let whereClause = { schoolId: req.user.schoolId };
     let includeClause = [
       {
         model: StudentFee,
@@ -250,7 +284,6 @@ router.get('/payments', authenticateToken, requireRole(['finance']), async (req,
           {
             model: Student,
             as: 'student',
-            where: { schoolId: req.user.schoolId },
             attributes: ['id', 'firstName', 'lastName']
           },
           {
@@ -464,6 +497,26 @@ router.get('/classes', authenticateToken, requireRole(['finance']), async (req, 
   } catch (error) {
     console.error('Error fetching classes:', error);
     res.status(500).json({ error: 'Failed to fetch classes' });
+  }
+});
+
+// Get fee structures for finance role
+router.get('/fee-structures', authenticateToken, requireRole(['finance']), async (req, res) => {
+  try {
+    console.log('Finance user requesting fee structures for school:', req.user.schoolId);
+    const feeStructures = await FeeStructure.findAll({
+      where: {
+        schoolId: req.user.schoolId,
+        isActive: true
+      },
+      order: [['createdAt', 'DESC']]
+    });
+    
+    console.log('Found fee structures:', feeStructures.length);
+    res.json(feeStructures);
+  } catch (error) {
+    console.error('Error fetching fee structures:', error);
+    res.status(500).json({ error: 'Failed to fetch fee structures' });
   }
 });
 

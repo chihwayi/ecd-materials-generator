@@ -119,7 +119,7 @@ const Receipt = sequelize.define('Receipt', {
     field: 'updated_at'
   }
 }, {
-  tableName: 'receipts',
+  tableName: 'receipt',
   timestamps: true,
   underscored: true,
   indexes: [
