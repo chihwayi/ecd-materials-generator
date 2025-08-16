@@ -823,7 +823,6 @@ const MaterialViewerPage: React.FC = () => {
             )}
           </div>
         )}
-      </div>
 
         {/* Canvas */}
         <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
@@ -860,6 +859,7 @@ const MaterialViewerPage: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
     </div>
   );
 };
