@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { materialsService } from '../services/materials.service.ts';
+import { getTemplateById, coloringTemplates } from '../utils/coloringTemplates.ts';
 
 interface MaterialElement {
   id: string;
@@ -50,268 +51,41 @@ const MaterialViewerPage: React.FC = () => {
     }
   };
 
-  // Function to render coloring outline on canvas
-  const renderColoringCanvas = (canvas: HTMLCanvasElement, element: MaterialElement) => {
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      canvas.width = 800;
-      canvas.height = 600;
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Center the drawing on the canvas with proper margins
-      const margin = 50;
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      const maxWidth = canvas.width - 2 * margin;
-      const maxHeight = canvas.height - 2 * margin;
-      
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
-      ctx.fillStyle = 'transparent';
-      
-      if (element.content.instructions.includes('flag')) {
-        // Draw proper Zimbabwean flag
-        const flagWidth = Math.min(400, maxWidth);
-        const flagHeight = Math.min(250, maxHeight);
-        const x = centerX - flagWidth / 2;
-        const y = centerY - flagHeight / 2;
-        
-        // Main flag rectangle
-        ctx.strokeRect(x, y, flagWidth, flagHeight);
-        
-        // Horizontal stripes (green, yellow, red, black, red, yellow, green)
-        const stripeHeight = flagHeight / 7;
-        for (let i = 0; i < 7; i++) {
-          ctx.strokeRect(x, y + i * stripeHeight, flagWidth, stripeHeight);
-        }
-        
-        // Triangle on the left side
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x, y + flagHeight);
-        ctx.lineTo(x + flagWidth * 0.3, y + flagHeight / 2);
-        ctx.closePath();
-        ctx.stroke();
-        
-        // Star in the triangle
-        const starX = x + flagWidth * 0.15;
-        const starY = y + flagHeight / 2;
-        const starSize = 20;
-        drawStar(ctx, starX, starY, starSize);
-        
-      } else if (element.content.instructions.includes('lion')) {
-        // Draw realistic lion
-        const lionWidth = Math.min(300, maxWidth);
-        const lionHeight = Math.min(250, maxHeight);
-        const x = centerX - lionWidth / 2;
-        const y = centerY - lionHeight / 2;
-        
-        // Lion's head
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY - 20, lionWidth / 3, lionHeight / 3, 0, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Mane
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY - 20, lionWidth / 2.5, lionHeight / 2.5, 0, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Eyes
-        ctx.beginPath();
-        ctx.arc(centerX - 30, centerY - 40, 12, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(centerX + 30, centerY - 40, 12, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Nose
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY - 10, 8, 5, 0, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Mouth
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY + 10, 15, 8, 0, 0, Math.PI);
-        ctx.stroke();
-        
-        // Ears
-        ctx.beginPath();
-        ctx.arc(centerX - 40, centerY - 60, 8, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(centerX + 40, centerY - 60, 8, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-      } else if (element.content.instructions.includes('house')) {
-        // Draw realistic house
-        const houseWidth = Math.min(350, maxWidth);
-        const houseHeight = Math.min(280, maxHeight);
-        const x = centerX - houseWidth / 2;
-        const y = centerY - houseHeight / 2;
-        
-        // House body
-        ctx.strokeRect(x, y + houseHeight * 0.3, houseWidth, houseHeight * 0.7);
-        
-        // Roof
-        ctx.beginPath();
-        ctx.moveTo(x - 20, y + houseHeight * 0.3);
-        ctx.lineTo(centerX, y);
-        ctx.lineTo(x + houseWidth + 20, y + houseHeight * 0.3);
-        ctx.stroke();
-        
-        // Door
-        const doorWidth = 60;
-        const doorHeight = 100;
-        ctx.strokeRect(centerX - doorWidth / 2, y + houseHeight * 0.5, doorWidth, doorHeight);
-        
-        // Door handle
-        ctx.beginPath();
-        ctx.arc(centerX + 15, y + houseHeight * 0.7, 3, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Windows
-        const windowSize = 50;
-        ctx.strokeRect(x + 40, y + houseHeight * 0.4, windowSize, windowSize);
-        ctx.strokeRect(x + houseWidth - 90, y + houseHeight * 0.4, windowSize, windowSize);
-        
-        // Window panes
-        ctx.beginPath();
-        ctx.moveTo(x + 40 + windowSize / 2, y + houseHeight * 0.4);
-        ctx.lineTo(x + 40 + windowSize / 2, y + houseHeight * 0.4 + windowSize);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x + 40, y + houseHeight * 0.4 + windowSize / 2);
-        ctx.lineTo(x + 40 + windowSize, y + houseHeight * 0.4 + windowSize / 2);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(x + houseWidth - 90 + windowSize / 2, y + houseHeight * 0.4);
-        ctx.lineTo(x + houseWidth - 90 + windowSize / 2, y + houseHeight * 0.4 + windowSize);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x + houseWidth - 90, y + houseHeight * 0.4 + windowSize / 2);
-        ctx.lineTo(x + houseWidth - 90 + windowSize, y + houseHeight * 0.4 + windowSize / 2);
-        ctx.stroke();
-        
-        // Chimney
-        ctx.strokeRect(x + houseWidth - 40, y + houseHeight * 0.1, 25, 60);
-        
-      } else if (element.content.instructions.includes('tree')) {
-        // Draw realistic tree
-        const treeWidth = Math.min(300, maxWidth);
-        const treeHeight = Math.min(350, maxHeight);
-        const x = centerX - treeWidth / 2;
-        const y = centerY - treeHeight / 2;
-        
-        // Trunk
-        ctx.strokeRect(centerX - 15, y + treeHeight * 0.6, 30, treeHeight * 0.4);
-        
-        // Tree crown (multiple circles for realistic look)
-        const crownRadius = 80;
-        ctx.beginPath();
-        ctx.arc(centerX, y + treeHeight * 0.3, crownRadius, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(centerX - 30, y + treeHeight * 0.2, crownRadius * 0.7, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(centerX + 30, y + treeHeight * 0.2, crownRadius * 0.7, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Apples
-        for (let i = 0; i < 5; i++) {
-          const appleX = centerX - 60 + i * 30;
-          const appleY = y + treeHeight * 0.3 + (i % 2) * 20;
-          ctx.beginPath();
-          ctx.arc(appleX, appleY, 8, 0, 2 * Math.PI);
-          ctx.stroke();
-        }
-        
-        // Tree branches
-        ctx.beginPath();
-        ctx.moveTo(centerX - 10, y + treeHeight * 0.5);
-        ctx.lineTo(centerX - 40, y + treeHeight * 0.4);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(centerX + 10, y + treeHeight * 0.5);
-        ctx.lineTo(centerX + 40, y + treeHeight * 0.4);
-        ctx.stroke();
-        
-      } else if (element.content.instructions.includes('car')) {
-        // Draw realistic car
-        const carWidth = Math.min(400, maxWidth);
-        const carHeight = Math.min(180, maxHeight);
-        const x = centerX - carWidth / 2;
-        const y = centerY - carHeight / 2;
-        
-        // Car body (rounded rectangle effect)
-        ctx.beginPath();
-        ctx.moveTo(x + 20, y);
-        ctx.lineTo(x + carWidth - 20, y);
-        ctx.quadraticCurveTo(x + carWidth, y, x + carWidth, y + 20);
-        ctx.lineTo(x + carWidth, y + carHeight - 40);
-        ctx.quadraticCurveTo(x + carWidth, y + carHeight, x + carWidth - 20, y + carHeight);
-        ctx.lineTo(x + 20, y + carHeight);
-        ctx.quadraticCurveTo(x, y + carHeight, x, y + carHeight - 40);
-        ctx.lineTo(x, y + 20);
-        ctx.quadraticCurveTo(x, y, x + 20, y);
-        ctx.stroke();
-        
-        // Windows
-        const windowWidth = 100;
-        const windowHeight = 60;
-        ctx.strokeRect(x + 50, y + 20, windowWidth, windowHeight);
-        ctx.strokeRect(x + 250, y + 20, windowWidth, windowHeight);
-        
-        // Window frames
-        ctx.beginPath();
-        ctx.moveTo(x + 50 + windowWidth / 2, y + 20);
-        ctx.lineTo(x + 50 + windowWidth / 2, y + 20 + windowHeight);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x + 250 + windowWidth / 2, y + 20);
-        ctx.lineTo(x + 250 + windowWidth / 2, y + 20 + windowHeight);
-        ctx.stroke();
-        
-        // Wheels
-        const wheelRadius = 35;
-        ctx.beginPath();
-        ctx.arc(x + 80, y + carHeight + 10, wheelRadius, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(x + 320, y + carHeight + 10, wheelRadius, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Wheel details
-        ctx.beginPath();
-        ctx.arc(x + 80, y + carHeight + 10, wheelRadius * 0.6, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(x + 320, y + carHeight + 10, wheelRadius * 0.6, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Headlights
-        ctx.beginPath();
-        ctx.arc(x + 20, y + 30, 12, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(x + 20, y + carHeight - 30, 12, 0, 2 * Math.PI);
-        ctx.stroke();
-        
-        // Bumpers
-        ctx.strokeRect(x + 10, y + 10, 20, 10);
-        ctx.strokeRect(x + carWidth - 30, y + 10, 20, 10);
-        
-      } else {
-        // Generic outline - bigger and centered
-        const rectWidth = Math.min(300, maxWidth);
-        const rectHeight = Math.min(200, maxHeight);
-        const x = centerX - rectWidth / 2;
-        const y = centerY - rectHeight / 2;
-        ctx.strokeRect(x, y, rectWidth, rectHeight);
-      }
+  // Function to render SVG coloring template
+  const renderColoringTemplate = (element: MaterialElement) => {
+    // Try to find matching template based on instructions
+    const instructions = element.content.instructions.toLowerCase();
+    let template = null;
+    
+    if (instructions.includes('flag')) {
+      template = getTemplateById('zimbabwe-flag');
+    } else if (instructions.includes('lion')) {
+      template = getTemplateById('african-lion');
+    } else if (instructions.includes('house') || instructions.includes('hut')) {
+      template = getTemplateById('traditional-hut');
+    } else if (instructions.includes('tree') || instructions.includes('baobab')) {
+      template = getTemplateById('baobab-tree');
+    } else if (instructions.includes('elephant')) {
+      template = getTemplateById('elephant');
     }
+    
+    if (template) {
+      return (
+        <div 
+          className="w-full h-full flex items-center justify-center p-8"
+          dangerouslySetInnerHTML={{ __html: template.content }}
+        />
+      );
+    }
+    
+    // Fallback to simple outline
+    return (
+      <div className="w-full h-full flex items-center justify-center p-8">
+        <div className="border-4 border-black rounded-lg w-80 h-60 flex items-center justify-center">
+          <span className="text-gray-400 text-lg">Coloring Template</span>
+        </div>
+      </div>
+    );
   };
 
   // Helper function to draw a star
@@ -472,18 +246,8 @@ const MaterialViewerPage: React.FC = () => {
                 <div className="text-blue-100 text-sm">Click and drag to color the image below</div>
               </div>
               <div className="flex-1 flex items-center justify-center p-8">
-                <div className="bg-white rounded-2xl shadow-2xl border-2 border-white border-opacity-20 overflow-hidden backdrop-blur-sm">
-                  <canvas
-                    ref={(canvas) => {
-                      if (canvas) {
-                        renderColoringCanvas(canvas, element);
-                      }
-                    }}
-                    width={800}
-                    height={600}
-                    className="max-w-full max-h-full object-contain"
-                    style={{ maxHeight: 'calc(100vh - 300px)' }}
-                  />
+                <div className="bg-white rounded-2xl shadow-2xl border-2 border-white border-opacity-20 overflow-hidden backdrop-blur-sm" style={{ maxHeight: 'calc(100vh - 300px)', width: '800px', height: '600px' }}>
+                  {renderColoringTemplate(element)}
                 </div>
               </div>
             </div>
