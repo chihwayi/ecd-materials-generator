@@ -61,3 +61,6 @@ tmp/
 test-results/
 playwright-report/
 
+# Stripe Keys (DO NOT COMMIT)
+STRIPE_KEYS.txt
+
